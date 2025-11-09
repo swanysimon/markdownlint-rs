@@ -47,6 +47,13 @@ Based on ripgrep and exa patterns:
 - **Front matter detection**: Simple string-based detection for YAML (---) and TOML (+++) delimiters, avoiding regex overhead
 - **CommonMark extensions**: Enabled tables, footnotes, strikethrough, tasklists, and heading attributes via pulldown-cmark Options
 
+### Rule System Architecture
+- **Rule trait design**: Rules receive `&MarkdownParser` for full access to content, lines, and AST events, plus optional JSON config
+- **Fixable trait method**: Default implementation returns `false`, only override for fixable rules
+- **Fix type**: Supports line and column ranges for precise text replacement with descriptive messages
+- **Config flexibility**: Rules parse their own config from `Option<&Value>`, allowing rule-specific options like `br_spaces`, `strict`, `maximum`
+- **Registry pattern**: Simple HashMap-based registry with `create_default_registry()` function to register all built-in rules
+
 ---
 
 ## Phase 1: Project Foundation ✅
@@ -227,22 +234,22 @@ Implement support for all markdownlint-cli2 config options:
 
 ---
 
-## Phase 5: Core Linting Rules
+## Phase 5: Core Linting Rules (In Progress)
 
-### 5.1 Rule System Architecture
-- [ ] Define `Rule` trait with methods:
+### 5.1 Rule System Architecture ✅
+- [x] Define `Rule` trait with methods:
   - `name()`: Rule identifier (e.g., "MD001")
   - `description()`: Human-readable description
   - `tags()`: Rule categories
-  - `check()`: Perform the check, return violations
-  - `fix()`: Optional auto-fix implementation
-- [ ] Define `Violation` type with:
+  - `check()`: Perform the check, return violations (takes MarkdownParser and config)
+  - `fixable()`: Whether rule supports auto-fix
+- [x] Define `Violation` type with:
   - Line and column position
   - Rule name
   - Error message
   - Fix information (if fixable)
-- [ ] Registry pattern for all rules
-- [ ] Rule configuration through Config types
+- [x] Registry pattern for all rules
+- [x] Rule configuration through Config types (JSON values)
 
 ### 5.2 Essential Rules (Priority 1)
 Port core rules from markdownlint library:
@@ -251,10 +258,10 @@ Port core rules from markdownlint library:
 - [ ] MD004: Unordered list style consistency
 - [ ] MD005: List indentation consistency
 - [ ] MD007: Unordered list indentation
-- [ ] MD009: Trailing spaces
-- [ ] MD010: Hard tabs
+- [x] MD009: Trailing spaces (supports br_spaces, strict config)
+- [x] MD010: Hard tabs (supports code_blocks config)
 - [ ] MD011: Reversed link syntax
-- [ ] MD012: Multiple consecutive blank lines
+- [x] MD012: Multiple consecutive blank lines (supports maximum config)
 - [ ] MD013: Line length
 
 ### 5.3 Important Rules (Priority 2)

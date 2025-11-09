@@ -1,11 +1,20 @@
+use crate::markdown::MarkdownParser;
 use crate::types::Violation;
+use serde_json::Value;
 use std::collections::HashMap;
 
 pub trait Rule: Send + Sync {
     fn name(&self) -> &str;
     fn description(&self) -> &str;
     fn tags(&self) -> &[&str];
-    fn check(&self, content: &str) -> Vec<Violation>;
+
+    /// Check the markdown content for violations
+    fn check(&self, parser: &MarkdownParser, config: Option<&Value>) -> Vec<Violation>;
+
+    /// Whether this rule can automatically fix violations
+    fn fixable(&self) -> bool {
+        false
+    }
 }
 
 #[derive(Default)]

@@ -1,6 +1,7 @@
 mod engine;
 mod result;
 mod rule;
+pub mod rules;
 
 pub use engine::LintEngine;
 pub use result::LintResult;
