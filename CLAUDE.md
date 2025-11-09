@@ -28,6 +28,9 @@ Based on ripgrep and exa patterns:
 - **Integration tests should validate our glue code**: When integrating libraries, test that our error handling and data transformation works correctly
 - **Prefer specific tests over library validation**: Rather than testing "JSONC parsing works", test "our Config struct deserializes correctly with our serde annotations"
 - **Use lib.rs for unit testing**: Created `src/lib.rs` to enable `cargo test --lib` for modular testing
+- **Compatibility testing via Docker**: Created `tests/compatibility.rs` to verify our implementation matches markdownlint-cli2 behavior using Docker container
+- **Graceful test degradation**: Compatibility tests skip gracefully when Docker is unavailable, allowing CI to run without Docker
+- **Binary uses library crate**: Changed `main.rs` to import from library crate instead of duplicating module declarations, avoiding compilation issues
 
 ### Configuration System Implementation
 - **JSONC requires special handling**: Used `jsonc-parser` crate to convert JSONC to `serde_json::Value` before deserializing

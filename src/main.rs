@@ -1,13 +1,5 @@
-mod config;
-mod error;
-mod fix;
-mod format;
-mod glob;
-mod lint;
-mod types;
-
 use clap::Parser;
-use error::Result;
+use markdownlint_rs::error::Result;
 
 #[derive(Parser, Debug)]
 #[command(
