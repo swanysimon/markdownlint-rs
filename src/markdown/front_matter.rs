@@ -1,0 +1,128 @@
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FrontMatterType {
+    Yaml,
+    Toml,
+}
+
+#[derive(Debug, Clone)]
+pub struct FrontMatter {
+    pub matter_type: FrontMatterType,
+    pub content: String,
+    pub end_line: usize,
+}
+
+pub fn detect_front_matter(content: &str) -> Option<FrontMatter> {
+    let lines: Vec<&str> = content.lines().collect();
+
+    if lines.is_empty() {
+        return None;
+    }
+
+    if lines[0] == "---" {
+        detect_yaml_front_matter(&lines)
+    } else if lines[0] == "+++" {
+        detect_toml_front_matter(&lines)
+    } else {
+        None
+    }
+}
+
+fn detect_yaml_front_matter(lines: &[&str]) -> Option<FrontMatter> {
+    if lines.is_empty() || lines[0] != "---" {
+        return None;
+    }
+
+    for (i, line) in lines.iter().enumerate().skip(1) {
+        if *line == "---" {
+            let content = lines[1..i].join("\n");
+            return Some(FrontMatter {
+                matter_type: FrontMatterType::Yaml,
+                content,
+                end_line: i + 1,
+            });
+        }
+    }
+
+    None
+}
+
+fn detect_toml_front_matter(lines: &[&str]) -> Option<FrontMatter> {
+    if lines.is_empty() || lines[0] != "+++" {
+        return None;
+    }
+
+    for (i, line) in lines.iter().enumerate().skip(1) {
+        if *line == "+++" {
+            let content = lines[1..i].join("\n");
+            return Some(FrontMatter {
+                matter_type: FrontMatterType::Toml,
+                content,
+                end_line: i + 1,
+            });
+        }
+    }
+
+    None
+}
+
+pub fn strip_front_matter(content: &str) -> String {
+    if let Some(front_matter) = detect_front_matter(content) {
+        let lines: Vec<&str> = content.lines().collect();
+        lines[front_matter.end_line..].join("\n")
+    } else {
+        content.to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_detect_yaml_front_matter() {
+        let content = "---\ntitle: Test\nauthor: John\n---\n# Heading";
+        let fm = detect_front_matter(content).unwrap();
+
+        assert_eq!(fm.matter_type, FrontMatterType::Yaml);
+        assert_eq!(fm.content, "title: Test\nauthor: John");
+        assert_eq!(fm.end_line, 4);
+    }
+
+    #[test]
+    fn test_detect_toml_front_matter() {
+        let content = "+++\ntitle = \"Test\"\nauthor = \"John\"\n+++\n# Heading";
+        let fm = detect_front_matter(content).unwrap();
+
+        assert_eq!(fm.matter_type, FrontMatterType::Toml);
+        assert_eq!(fm.content, "title = \"Test\"\nauthor = \"John\"");
+        assert_eq!(fm.end_line, 4);
+    }
+
+    #[test]
+    fn test_no_front_matter() {
+        let content = "# Heading\nSome content";
+        assert!(detect_front_matter(content).is_none());
+    }
+
+    #[test]
+    fn test_incomplete_front_matter() {
+        let content = "---\ntitle: Test\n# Heading";
+        assert!(detect_front_matter(content).is_none());
+    }
+
+    #[test]
+    fn test_strip_front_matter() {
+        let content = "---\ntitle: Test\n---\n# Heading\nContent";
+        let stripped = strip_front_matter(content);
+
+        assert_eq!(stripped, "# Heading\nContent");
+    }
+
+    #[test]
+    fn test_strip_no_front_matter() {
+        let content = "# Heading\nContent";
+        let stripped = strip_front_matter(content);
+
+        assert_eq!(stripped, content);
+    }
+}
