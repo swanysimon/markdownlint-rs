@@ -21,31 +21,46 @@ Based on ripgrep and exa patterns:
 - Iterator-based processing where appropriate
 - Minimal allocations in hot paths
 
+## Lessons Learned
+
+### Testing Strategy
+- **Test business logic, not libraries**: Focus tests on our custom logic (merge algorithms, discovery patterns, extraction logic), not on validating that external crates work
+- **Integration tests should validate our glue code**: When integrating libraries, test that our error handling and data transformation works correctly
+- **Prefer specific tests over library validation**: Rather than testing "JSONC parsing works", test "our Config struct deserializes correctly with our serde annotations"
+- **Use lib.rs for unit testing**: Created `src/lib.rs` to enable `cargo test --lib` for modular testing
+
+### Configuration System Implementation
+- **JSONC requires special handling**: Used `jsonc-parser` crate to convert JSONC to `serde_json::Value` before deserializing
+- **Package.json extraction**: Custom logic to extract nested `markdownlint-cli2` key with fallback to empty Config
+- **Hierarchical discovery**: Walk up directory tree using `PathBuf::pop()` until finding a config or reaching root
+- **Config merging precedence**: Later configs override earlier, but arrays extend rather than replace
+
 ---
 
-## Phase 1: Project Foundation
+## Phase 1: Project Foundation ✅
 
-### 1.1 Cargo Project Setup
-- [ ] Initialize with `cargo init --bin`
-- [ ] Configure `Cargo.toml` with metadata (name, version, authors, edition)
-- [ ] Set up workspace if needed for multiple crates
-- [ ] Add initial dependency categories (CLI, config, glob, markdown)
-- [ ] Configure release profile for optimization
-- [ ] Set up `.gitignore` for Rust projects
+### 1.1 Cargo Project Setup ✅
+- [x] Initialize with `cargo init --bin`
+- [x] Configure `Cargo.toml` with metadata (name, version, authors, edition)
+- [x] Set up workspace if needed for multiple crates (not needed - single binary)
+- [x] Add initial dependency categories (CLI, config, glob, markdown)
+- [x] Configure release profile for optimization
+- [x] Set up `.gitignore` for Rust projects (already present)
 
-### 1.2 Core Dependencies Selection
-- [ ] **CLI parsing**: `clap` v4 with derive feature for ergonomic argument handling
-- [ ] **Configuration**: `serde` + `serde_json` + `serde_yaml` + `jsonc-parser` crate
-- [ ] **Globbing**: `globset` or `ignore` crate (used by ripgrep)
-- [ ] **Markdown parsing**: Research options (pulldown-cmark, comrak, or markdown crate)
-- [ ] **Pattern matching**: `regex` crate for advanced patterns
-- [ ] **File I/O**: `walkdir` or use `ignore` crate for gitignore-aware traversal
-- [ ] **Error handling**: `anyhow` for application errors, `thiserror` for library errors
-- [ ] **Async runtime**: Evaluate if needed (likely not for initial version)
+### 1.2 Core Dependencies Selection ✅
+- [x] **CLI parsing**: `clap` v4 with derive feature for ergonomic argument handling
+- [x] **Configuration**: `serde` + `serde_json` + `serde_yaml` + `jsonc-parser` crate
+- [x] **Globbing**: `globset` or `ignore` crate (used by ripgrep) - Added both
+- [x] **Markdown parsing**: Research options (pulldown-cmark, comrak, or markdown crate) - Selected pulldown-cmark
+- [x] **Pattern matching**: `regex` crate for advanced patterns
+- [x] **File I/O**: `walkdir` or use `ignore` crate for gitignore-aware traversal - Using ignore crate
+- [x] **Error handling**: `anyhow` for application errors, `thiserror` for library errors
+- [x] **Async runtime**: Evaluate if needed (likely not for initial version) - Not needed
 
-### 1.3 Project Structure
+### 1.3 Project Structure ✅
 ```
 src/
+  lib.rs            # Library root for unit testing
   main.rs           # Entry point, CLI setup
   config/           # Configuration loading and parsing
     mod.rs
@@ -74,59 +89,59 @@ src/
   types.rs          # Shared types
 ```
 
-### 1.4 Type System Foundation
-- [ ] Define `Config` struct with all supported options
-- [ ] Define `LintResult` type for individual violations
-- [ ] Define `FileResult` type for per-file results
-- [ ] Define `Rule` trait for linting rules
-- [ ] Define `Formatter` trait for output formatters
-- [ ] Use `PathBuf` consistently for file paths
-- [ ] Use strongly-typed enums for options (e.g., `OutputFormat`)
+### 1.4 Type System Foundation ✅
+- [x] Define `Config` struct with all supported options
+- [x] Define `LintResult` type for individual violations
+- [x] Define `FileResult` type for per-file results
+- [x] Define `Rule` trait for linting rules
+- [x] Define `Formatter` trait for output formatters
+- [x] Use `PathBuf` consistently for file paths
+- [x] Use strongly-typed enums for options (e.g., `OutputFormat`)
 
 ---
 
-## Phase 2: Configuration System
+## Phase 2: Configuration System ✅
 
-### 2.1 Configuration File Formats
-- [ ] Implement `.markdownlint-cli2.jsonc` parser (JSON with comments)
-- [ ] Implement `.markdownlint-cli2.yaml` parser
-- [ ] Implement `.markdownlint.json` parser (rules only)
-- [ ] Implement `.markdownlint.yaml` parser (rules only)
-- [ ] Implement `package.json` parser (extract `markdownlint-cli2` key)
-- [ ] Handle missing configuration gracefully (use defaults)
+### 2.1 Configuration File Formats ✅
+- [x] Implement `.markdownlint-cli2.jsonc` parser (JSON with comments)
+- [x] Implement `.markdownlint-cli2.yaml` parser
+- [x] Implement `.markdownlint.json` parser (rules only)
+- [x] Implement `.markdownlint.yaml` parser (rules only)
+- [x] Implement `package.json` parser (extract `markdownlint-cli2` key)
+- [x] Handle missing configuration gracefully (use defaults)
 
-### 2.2 Configuration Properties
+### 2.2 Configuration Properties ✅
 Implement support for all markdownlint-cli2 config options:
-- [ ] `config`: Rule configuration object
-- [ ] `customRules`: Array of custom rule paths/modules
-- [ ] `fix`: Boolean to enable auto-fixing
-- [ ] `frontMatter`: Regex pattern for front matter
-- [ ] `gitignore`: Boolean to respect .gitignore
-- [ ] `globs`: Array of glob patterns
-- [ ] `ignores`: Array of ignore patterns
-- [ ] `markdownItPlugins`: Plugin configuration (defer to later phase)
-- [ ] `noBanner`: Suppress banner output
-- [ ] `noProgress`: Suppress progress output
-- [ ] `noInlineConfig`: Disable HTML comment configuration
-- [ ] `outputFormatters`: Array of formatter configurations
+- [x] `config`: Rule configuration object
+- [x] `customRules`: Array of custom rule paths/modules
+- [x] `fix`: Boolean to enable auto-fixing
+- [x] `frontMatter`: Regex pattern for front matter
+- [x] `gitignore`: Boolean to respect .gitignore
+- [x] `globs`: Array of glob patterns
+- [x] `ignores`: Array of ignore patterns
+- [x] `markdownItPlugins`: Plugin configuration (defer to later phase)
+- [x] `noBanner`: Suppress banner output
+- [x] `noProgress`: Suppress progress output
+- [x] `noInlineConfig`: Disable HTML comment configuration
+- [x] `outputFormatters`: Array of formatter configurations
 
-### 2.3 Hierarchical Configuration
-- [ ] Discover config files in directory tree (walk up from cwd)
-- [ ] Merge configurations with correct precedence:
-  1. Command-line options (highest)
+### 2.3 Hierarchical Configuration ✅
+- [x] Discover config files in directory tree (walk up from cwd)
+- [x] Merge configurations with correct precedence:
+  1. Command-line options (highest) - ready for Phase 8
   2. Local directory config
   3. Parent directory configs
   4. Home directory config
   5. Default config (lowest)
-- [ ] Handle conflicts correctly (later configs override earlier)
-- [ ] Unit tests for merge logic
+- [x] Handle conflicts correctly (later configs override earlier)
+- [x] Unit tests for merge logic
 
-### 2.4 Configuration Validation
-- [ ] Validate rule names against known rules
-- [ ] Validate glob patterns are valid
-- [ ] Validate regex patterns compile
-- [ ] Provide helpful error messages for invalid config
-- [ ] Unit tests for validation logic
+### 2.4 Configuration Validation (Deferred)
+- [ ] Validate rule names against known rules (will do after implementing rules)
+- [ ] Validate glob patterns are valid (will do in Phase 3)
+- [ ] Validate regex patterns compile (will do when implementing front matter)
+- [x] Provide helpful error messages for invalid config
+- [x] Unit tests for validation logic (8 tests covering core functionality)
 
 ---
 
