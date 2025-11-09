@@ -1,0 +1,205 @@
+use crate::lint::rule::Rule;
+use crate::markdown::MarkdownParser;
+use crate::types::Violation;
+use pulldown_cmark::{Event, Tag};
+use serde_json::Value;
+use std::collections::HashSet;
+
+pub struct MD013;
+
+impl Rule for MD013 {
+    fn name(&self) -> &str {
+        "MD013"
+    }
+
+    fn description(&self) -> &str {
+        "Line length"
+    }
+
+    fn tags(&self) -> &[&str] {
+        &["line_length"]
+    }
+
+    fn check(&self, parser: &MarkdownParser, config: Option<&Value>) -> Vec<Violation> {
+        let line_length = config
+            .and_then(|c| c.get("line_length"))
+            .and_then(|v| v.as_u64())
+            .unwrap_or(80) as usize;
+
+        let heading_line_length = config
+            .and_then(|c| c.get("heading_line_length"))
+            .and_then(|v| v.as_u64())
+            .map(|v| v as usize);
+
+        let check_code_blocks = config
+            .and_then(|c| c.get("code_blocks"))
+            .and_then(|v| v.as_bool())
+            .unwrap_or(true);
+
+        let check_tables = config
+            .and_then(|c| c.get("tables"))
+            .and_then(|v| v.as_bool())
+            .unwrap_or(true);
+
+        let check_headings = config
+            .and_then(|c| c.get("headings"))
+            .and_then(|v| v.as_bool())
+            .unwrap_or(true);
+
+        let mut violations = Vec::new();
+
+        // Track special lines (headings, code blocks, tables)
+        let mut heading_lines = HashSet::new();
+        let mut code_block_lines = HashSet::new();
+        let mut table_lines = HashSet::new();
+
+        let mut in_code_block = false;
+        let mut in_table = false;
+
+        for (event, range) in parser.parse_with_offsets() {
+            let line = parser.offset_to_line(range.start);
+
+            match event {
+                Event::Start(Tag::Heading(_, _, _)) => {
+                    heading_lines.insert(line);
+                }
+                Event::Start(Tag::CodeBlock(_)) => {
+                    in_code_block = true;
+                }
+                Event::End(Tag::CodeBlock(_)) => {
+                    in_code_block = false;
+                }
+                Event::Start(Tag::Table(_)) => {
+                    in_table = true;
+                }
+                Event::End(Tag::Table(_)) => {
+                    in_table = false;
+                }
+                Event::Text(_) if in_code_block => {
+                    code_block_lines.insert(line);
+                }
+                Event::Text(_) if in_table => {
+                    table_lines.insert(line);
+                }
+                _ => {}
+            }
+        }
+
+        // Check each line
+        for (line_num, line) in parser.lines().iter().enumerate() {
+            let line_number = line_num + 1;
+            let line_len = line.chars().count();
+
+            let is_heading = heading_lines.contains(&line_number);
+            let is_code_block = code_block_lines.contains(&line_number);
+            let is_table = table_lines.contains(&line_number);
+
+            // Skip if we shouldn't check this type of line
+            if is_heading && !check_headings {
+                continue;
+            }
+            if is_code_block && !check_code_blocks {
+                continue;
+            }
+            if is_table && !check_tables {
+                continue;
+            }
+
+            // Determine the limit for this line
+            let limit = if is_heading && heading_line_length.is_some() {
+                heading_line_length.unwrap()
+            } else {
+                line_length
+            };
+
+            if line_len > limit {
+                violations.push(Violation {
+                    line: line_number,
+                    column: Some(limit + 1),
+                    rule: self.name().to_string(),
+                    message: format!(
+                        "Line exceeds maximum length ({} > {})",
+                        line_len, limit
+                    ),
+                    fix: None,
+                });
+            }
+        }
+
+        violations
+    }
+
+    fn fixable(&self) -> bool {
+        false
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_short_lines() {
+        let content = "Short line\nAnother short line\nStill short";
+        let parser = MarkdownParser::new(content);
+        let rule = MD013;
+        let violations = rule.check(&parser, None);
+
+        assert_eq!(violations.len(), 0);
+    }
+
+    #[test]
+    fn test_long_line() {
+        let content = "This is a very long line that definitely exceeds the default eighty character limit and should be flagged";
+        let parser = MarkdownParser::new(content);
+        let rule = MD013;
+        let violations = rule.check(&parser, None);
+
+        assert_eq!(violations.len(), 1);
+        assert_eq!(violations[0].line, 1);
+    }
+
+    #[test]
+    fn test_custom_line_length() {
+        let content = "This line is exactly forty characters.";
+        let parser = MarkdownParser::new(content);
+        let rule = MD013;
+        let config = serde_json::json!({ "line_length": 30 });
+        let violations = rule.check(&parser, Some(&config));
+
+        assert_eq!(violations.len(), 1);
+    }
+
+    #[test]
+    fn test_heading_exception() {
+        let content = "# This is a very long heading that would normally exceed the line length limit";
+        let parser = MarkdownParser::new(content);
+        let rule = MD013;
+        let config = serde_json::json!({ "headings": false });
+        let violations = rule.check(&parser, Some(&config));
+
+        assert_eq!(violations.len(), 0);
+    }
+
+    #[test]
+    fn test_code_block_check() {
+        let content = "```\nThis is a very long line in a code block that exceeds the maximum allowed character count\n```";
+        let parser = MarkdownParser::new(content);
+        let rule = MD013;
+        let config = serde_json::json!({ "code_blocks": true });
+        let violations = rule.check(&parser, Some(&config));
+
+        assert!(violations.len() > 0);
+    }
+
+    #[test]
+    fn test_code_block_ignore() {
+        let content = "```\nThis is a very long line in a code block that exceeds the maximum allowed character count\n```";
+        let parser = MarkdownParser::new(content);
+        let rule = MD013;
+        let config = serde_json::json!({ "code_blocks": false });
+        let violations = rule.check(&parser, Some(&config));
+
+        assert_eq!(violations.len(), 0);
+    }
+}

@@ -256,16 +256,16 @@ Implement support for all markdownlint-cli2 config options:
 
 ### 5.2 Essential Rules (Priority 1)
 Port core rules from markdownlint library:
-- [ ] MD001: Heading levels increment by one
+- [x] MD001: Heading levels increment by one
 - [ ] MD003: Heading style consistency
 - [ ] MD004: Unordered list style consistency
 - [ ] MD005: List indentation consistency
 - [ ] MD007: Unordered list indentation
 - [x] MD009: Trailing spaces (supports br_spaces, strict config)
 - [x] MD010: Hard tabs (supports code_blocks config)
-- [ ] MD011: Reversed link syntax
+- [x] MD011: Reversed link syntax (regex-based detection)
 - [x] MD012: Multiple consecutive blank lines (supports maximum config)
-- [ ] MD013: Line length
+- [x] MD013: Line length (supports line_length, heading_line_length, code_blocks, tables, headings config)
 
 ### 5.3 Important Rules (Priority 2)
 - [ ] MD018: No space after hash on atx heading
