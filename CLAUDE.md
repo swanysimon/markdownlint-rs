@@ -254,13 +254,13 @@ Implement support for all markdownlint-cli2 config options:
 - [x] Registry pattern for all rules
 - [x] Rule configuration through Config types (JSON values)
 
-### 5.2 Essential Rules (Priority 1)
+### 5.2 Essential Rules (Priority 1) ✅
 Port core rules from markdownlint library:
 - [x] MD001: Heading levels increment by one
-- [ ] MD003: Heading style consistency
-- [ ] MD004: Unordered list style consistency
-- [ ] MD005: List indentation consistency
-- [ ] MD007: Unordered list indentation
+- [x] MD003: Heading style consistency (supports style config: atx, atx_closed, setext)
+- [x] MD004: Unordered list style consistency (supports style config: asterisk, plus, dash)
+- [x] MD005: List indentation consistency (checks items at same level have same indent)
+- [x] MD007: Unordered list indentation (supports indent config, default 2)
 - [x] MD009: Trailing spaces (supports br_spaces, strict config)
 - [x] MD010: Hard tabs (supports code_blocks config)
 - [x] MD011: Reversed link syntax (regex-based detection)
