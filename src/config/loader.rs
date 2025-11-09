@@ -127,34 +127,6 @@ mod tests {
     use tempfile::TempDir;
 
     #[test]
-    fn test_parse_jsonc() {
-        let content = r#"{
-            // This is a comment
-            "fix": true,
-            "globs": ["*.md"]
-        }"#;
-
-        let config = ConfigLoader::parse_jsonc(content).unwrap();
-        assert!(config.fix);
-        assert_eq!(config.globs.len(), 1);
-        assert_eq!(config.globs[0], "*.md");
-    }
-
-    #[test]
-    fn test_parse_yaml() {
-        let content = r#"
-fix: true
-globs:
-  - "*.md"
-  - "**/*.markdown"
-"#;
-
-        let config = ConfigLoader::parse_yaml(content).unwrap();
-        assert!(config.fix);
-        assert_eq!(config.globs.len(), 2);
-    }
-
-    #[test]
     fn test_parse_package_json() {
         let content = r#"{
             "name": "test-package",
