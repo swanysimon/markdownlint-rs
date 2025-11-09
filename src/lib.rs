@@ -4,4 +4,5 @@ pub mod fix;
 pub mod format;
 pub mod glob;
 pub mod lint;
+pub mod markdown;
 pub mod types;
