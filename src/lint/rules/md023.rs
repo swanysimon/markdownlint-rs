@@ -1,6 +1,6 @@
 use crate::lint::rule::Rule;
 use crate::markdown::MarkdownParser;
-use crate::types::Violation;
+use crate::types::{Fix, Violation};
 use serde_json::Value;
 
 pub struct MD023;
@@ -34,6 +34,7 @@ impl Rule for MD023 {
                     // Valid heading should have 1-6 hashes
                     if hash_count > 0 && hash_count <= 6 {
                         let indent = line.len() - trimmed.len();
+                        // Remove leading whitespace
                         violations.push(Violation {
                             line: line_number,
                             column: Some(1),
@@ -42,7 +43,14 @@ impl Rule for MD023 {
                                 "Heading must start at the beginning of the line ({} space(s) before)",
                                 indent
                             ),
-                            fix: None,
+                            fix: Some(Fix {
+                                line_start: line_number,
+                                line_end: line_number,
+                                column_start: None,
+                                column_end: None,
+                                replacement: trimmed.to_string(),
+                                description: "Remove leading whitespace".to_string(),
+                            }),
                         });
                     }
                 }
@@ -53,7 +61,7 @@ impl Rule for MD023 {
     }
 
     fn fixable(&self) -> bool {
-        false
+        true
     }
 }
 

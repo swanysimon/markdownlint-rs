@@ -1,6 +1,6 @@
 use crate::lint::rule::Rule;
 use crate::markdown::MarkdownParser;
-use crate::types::Violation;
+use crate::types::{Fix, Violation};
 use serde_json::Value;
 
 pub struct MD030;
@@ -56,6 +56,13 @@ impl Rule for MD030 {
                     let expected = ul_single;
 
                     if space_count != expected {
+                        // Fix the spacing after list marker
+                        let leading_spaces = &line[..line.len() - trimmed.len()];
+                        let marker = trimmed.chars().next().unwrap();
+                        let content = after_marker[space_count..].trim_start();
+                        let spaces = " ".repeat(expected);
+                        let replacement = format!("{}{}{}{}", leading_spaces, marker, spaces, content);
+
                         violations.push(Violation {
                             line: line_number,
                             column: Some(line.len() - trimmed.len() + 2),
@@ -64,7 +71,14 @@ impl Rule for MD030 {
                                 "Expected {} space(s) after list marker, found {}",
                                 expected, space_count
                             ),
-                            fix: None,
+                            fix: Some(Fix {
+                                line_start: line_number,
+                                line_end: line_number,
+                                column_start: None,
+                                column_end: None,
+                                replacement,
+                                description: format!("Adjust spacing to {} space(s)", expected),
+                            }),
                         });
                     }
                 }
@@ -84,6 +98,13 @@ impl Rule for MD030 {
                         let expected = ol_single;
 
                         if space_count != expected {
+                            // Fix the spacing after list marker
+                            let leading_spaces = &line[..line.len() - trimmed.len()];
+                            let marker = &trimmed[..=dot_pos];
+                            let content = after_dot[space_count..].trim_start();
+                            let spaces = " ".repeat(expected);
+                            let replacement = format!("{}{}{}{}", leading_spaces, marker, spaces, content);
+
                             violations.push(Violation {
                                 line: line_number,
                                 column: Some(line.len() - trimmed.len() + dot_pos + 2),
@@ -92,7 +113,14 @@ impl Rule for MD030 {
                                     "Expected {} space(s) after list marker, found {}",
                                     expected, space_count
                                 ),
-                                fix: None,
+                                fix: Some(Fix {
+                                    line_start: line_number,
+                                    line_end: line_number,
+                                    column_start: None,
+                                    column_end: None,
+                                    replacement,
+                                    description: format!("Adjust spacing to {} space(s)", expected),
+                                }),
                             });
                         }
                     }
@@ -104,7 +132,7 @@ impl Rule for MD030 {
     }
 
     fn fixable(&self) -> bool {
-        false
+        true
     }
 }
 

@@ -1,6 +1,6 @@
 use crate::lint::rule::Rule;
 use crate::markdown::MarkdownParser;
-use crate::types::Violation;
+use crate::types::{Fix, Violation};
 use pulldown_cmark::{CodeBlockKind, Event, Tag};
 use serde_json::Value;
 
@@ -61,6 +61,14 @@ impl Rule for MD014 {
                             let mut current_line = code_block_start_line + 1;
                             for line in &lines {
                                 if !line.trim().is_empty() && line.trim_start().starts_with('$') {
+                                    // Remove leading $ and any spaces after it
+                                    let trimmed = line.trim_start();
+                                    let after_dollar = trimmed.strip_prefix('$').unwrap();
+                                    let after_dollar_trimmed = after_dollar.trim_start();
+                                    // Preserve leading whitespace before $
+                                    let leading_spaces = line.len() - trimmed.len();
+                                    let replacement = format!("{}{}", " ".repeat(leading_spaces), after_dollar_trimmed);
+
                                     violations.push(Violation {
                                         line: current_line,
                                         column: Some(1),
@@ -68,7 +76,14 @@ impl Rule for MD014 {
                                         message:
                                             "Dollar signs should not be used before commands without showing output"
                                                 .to_string(),
-                                        fix: None,
+                                        fix: Some(Fix {
+                                            line_start: current_line,
+                                            line_end: current_line,
+                                            column_start: None,
+                                            column_end: None,
+                                            replacement,
+                                            description: "Remove dollar sign".to_string(),
+                                        }),
                                     });
                                 }
                                 current_line += 1;
@@ -87,7 +102,7 @@ impl Rule for MD014 {
     }
 
     fn fixable(&self) -> bool {
-        false
+        true
     }
 }
 

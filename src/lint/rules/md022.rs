@@ -1,6 +1,6 @@
 use crate::lint::rule::Rule;
 use crate::markdown::MarkdownParser;
-use crate::types::Violation;
+use crate::types::{Fix, Violation};
 use pulldown_cmark::{Event, Tag};
 use serde_json::Value;
 
@@ -39,13 +39,21 @@ impl Rule for MD022 {
             if line_idx > 0 {
                 let prev_line = lines[line_idx - 1].trim();
                 if !prev_line.is_empty() {
+                    // Insert blank line before heading
                     violations.push(Violation {
                         line: heading_line,
                         column: Some(1),
                         rule: self.name().to_string(),
                         message: "Heading should be surrounded by blank lines (missing before)"
                             .to_string(),
-                        fix: None,
+                        fix: Some(Fix {
+                            line_start: line_idx,
+                            line_end: line_idx,
+                            column_start: None,
+                            column_end: None,
+                            replacement: format!("\n{}", lines[line_idx]),
+                            description: "Add blank line before heading".to_string(),
+                        }),
                     });
                 }
             }
@@ -60,13 +68,21 @@ impl Rule for MD022 {
                         .chars()
                         .all(|c| c == '=' || c == '-' || c.is_whitespace())
                 {
+                    // Insert blank line after heading
                     violations.push(Violation {
                         line: heading_line,
                         column: Some(1),
                         rule: self.name().to_string(),
                         message: "Heading should be surrounded by blank lines (missing after)"
                             .to_string(),
-                        fix: None,
+                        fix: Some(Fix {
+                            line_start: line_idx + 1,
+                            line_end: line_idx + 1,
+                            column_start: None,
+                            column_end: None,
+                            replacement: format!("{}\n", lines[line_idx]),
+                            description: "Add blank line after heading".to_string(),
+                        }),
                     });
                 }
             }
@@ -76,7 +92,7 @@ impl Rule for MD022 {
     }
 
     fn fixable(&self) -> bool {
-        false
+        true
     }
 }
 

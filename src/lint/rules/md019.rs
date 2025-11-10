@@ -1,6 +1,6 @@
 use crate::lint::rule::Rule;
 use crate::markdown::MarkdownParser;
-use crate::types::Violation;
+use crate::types::{Fix, Violation};
 use serde_json::Value;
 
 pub struct MD019;
@@ -38,6 +38,11 @@ impl Rule for MD019 {
                     let space_count = after_hashes.chars().take_while(|&c| c == ' ').count();
 
                     if space_count > 1 {
+                        // Replace multiple spaces with single space
+                        let hashes = "#".repeat(hash_count);
+                        let rest = after_hashes[space_count..].trim_start();
+                        let replacement = format!("{} {}", hashes, rest);
+
                         violations.push(Violation {
                             line: line_number,
                             column: Some(hash_count + 2),
@@ -46,7 +51,14 @@ impl Rule for MD019 {
                                 "Multiple spaces after hash on atx style heading ({} spaces)",
                                 space_count
                             ),
-                            fix: None,
+                            fix: Some(Fix {
+                                line_start: line_number,
+                                line_end: line_number,
+                                column_start: None,
+                                column_end: None,
+                                replacement,
+                                description: "Replace multiple spaces with single space".to_string(),
+                            }),
                         });
                     }
                 }
@@ -57,7 +69,7 @@ impl Rule for MD019 {
     }
 
     fn fixable(&self) -> bool {
-        false
+        true
     }
 }
 
