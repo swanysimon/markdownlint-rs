@@ -45,8 +45,11 @@ impl Rule for MD014 {
                     // Check if all non-empty lines start with $
                     let code_text = code_block_lines.join("");
                     let lines: Vec<&str> = code_text.lines().collect();
-                    let non_empty_lines: Vec<&str> =
-                        lines.iter().filter(|l| !l.trim().is_empty()).copied().collect();
+                    let non_empty_lines: Vec<&str> = lines
+                        .iter()
+                        .filter(|l| !l.trim().is_empty())
+                        .copied()
+                        .collect();
 
                     if !non_empty_lines.is_empty() {
                         let all_start_with_dollar = non_empty_lines
@@ -54,15 +57,22 @@ impl Rule for MD014 {
                             .all(|line| line.trim_start().starts_with('$'));
 
                         if all_start_with_dollar {
-                            violations.push(Violation {
-                                line: code_block_start_line + 1, // Line after opening fence
-                                column: Some(1),
-                                rule: self.name().to_string(),
-                                message:
-                                    "Dollar signs should not be used before commands without showing output"
-                                        .to_string(),
-                                fix: None,
-                            });
+                            // Report a violation for each line that starts with $
+                            let mut current_line = code_block_start_line + 1;
+                            for line in &lines {
+                                if !line.trim().is_empty() && line.trim_start().starts_with('$') {
+                                    violations.push(Violation {
+                                        line: current_line,
+                                        column: Some(1),
+                                        rule: self.name().to_string(),
+                                        message:
+                                            "Dollar signs should not be used before commands without showing output"
+                                                .to_string(),
+                                        fix: None,
+                                    });
+                                }
+                                current_line += 1;
+                            }
                         }
                     }
 
@@ -102,8 +112,9 @@ mod tests {
         let rule = MD014;
         let violations = rule.check(&parser, None);
 
-        assert_eq!(violations.len(), 1);
+        assert_eq!(violations.len(), 2); // One for each line with $
         assert_eq!(violations[0].line, 2); // First line of code content
+        assert_eq!(violations[1].line, 3); // Second line of code content
     }
 
     #[test]

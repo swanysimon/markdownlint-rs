@@ -118,7 +118,8 @@ pub fn create_default_registry() -> RuleRegistry {
     registry.register(Box::new(MD003));
     registry.register(Box::new(MD004));
     registry.register(Box::new(MD005));
-    registry.register(Box::new(MD006));
+    // MD006 is deprecated and not enabled by default in markdownlint
+    // registry.register(Box::new(MD006));
     registry.register(Box::new(MD007));
     registry.register(Box::new(MD009));
     registry.register(Box::new(MD010));

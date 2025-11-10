@@ -56,7 +56,10 @@ impl Rule for MD053 {
                     line: line_number,
                     column: Some(1),
                     rule: self.name().to_string(),
-                    message: format!("Link reference definition '{}' is defined but not used", label),
+                    message: format!(
+                        "Link reference definition '{}' is defined but not used",
+                        label
+                    ),
                     fix: None,
                 });
             }

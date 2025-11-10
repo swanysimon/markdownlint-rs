@@ -20,17 +20,14 @@ impl Rule for MD040 {
     }
 
     fn check(&self, parser: &MarkdownParser, config: Option<&Value>) -> Vec<Violation> {
-        let allowed_languages: Vec<String> = config
+        let allowed_languages: Option<Vec<String>> = config
             .and_then(|c| c.get("allowed_languages"))
             .and_then(|v| v.as_array())
             .map(|arr| {
                 arr.iter()
                     .filter_map(|v| v.as_str().map(|s| s.to_string()))
                     .collect()
-            })
-            .unwrap_or_default();
-
-        let ignore_no_language = allowed_languages.is_empty();
+            });
 
         let mut violations = Vec::new();
 
@@ -40,29 +37,25 @@ impl Rule for MD040 {
                 let line = parser.offset_to_line(range.start);
 
                 if lang_str.is_empty() {
-                    if !ignore_no_language {
-                        violations.push(Violation {
-                            line,
-                            column: Some(1),
-                            rule: self.name().to_string(),
-                            message: "Fenced code block should have a language specified"
-                                .to_string(),
-                            fix: None,
-                        });
-                    }
-                } else if !allowed_languages.is_empty()
-                    && !allowed_languages.contains(&lang_str.to_lowercase())
-                {
+                    // Always report code blocks without a language
                     violations.push(Violation {
                         line,
                         column: Some(1),
                         rule: self.name().to_string(),
-                        message: format!(
-                            "Language '{}' is not in the allowed list",
-                            lang_str
-                        ),
+                        message: "Fenced code block should have a language specified".to_string(),
                         fix: None,
                     });
+                } else if let Some(ref allowed) = allowed_languages {
+                    // If allowed_languages is specified, check if lang is in the list
+                    if !allowed.contains(&lang_str.to_lowercase()) {
+                        violations.push(Violation {
+                            line,
+                            column: Some(1),
+                            rule: self.name().to_string(),
+                            message: format!("Language '{}' is not in the allowed list", lang_str),
+                            fix: None,
+                        });
+                    }
                 }
             }
         }

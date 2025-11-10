@@ -27,7 +27,8 @@ pub fn merge_configs(mut base: Config, override_cfg: Config) -> Config {
     }
 
     if !override_cfg.markdown_it_plugins.is_empty() {
-        base.markdown_it_plugins.extend(override_cfg.markdown_it_plugins);
+        base.markdown_it_plugins
+            .extend(override_cfg.markdown_it_plugins);
     }
 
     if override_cfg.no_banner {
@@ -43,7 +44,8 @@ pub fn merge_configs(mut base: Config, override_cfg: Config) -> Config {
     }
 
     if !override_cfg.output_formatters.is_empty() {
-        base.output_formatters.extend(override_cfg.output_formatters);
+        base.output_formatters
+            .extend(override_cfg.output_formatters);
     }
 
     for (rule_name, rule_config) in override_cfg.config {
@@ -67,9 +69,7 @@ pub fn merge_rule_configs(
 }
 
 pub fn merge_many_configs(configs: Vec<Config>) -> Config {
-    configs
-        .into_iter()
-        .fold(Config::default(), merge_configs)
+    configs.into_iter().fold(Config::default(), merge_configs)
 }
 
 #[cfg(test)]
@@ -103,10 +103,13 @@ mod tests {
     #[test]
     fn test_merge_configs_rules() {
         let mut base = Config::default();
-        base.config.insert("MD001".to_string(), RuleConfig::Enabled(true));
+        base.config
+            .insert("MD001".to_string(), RuleConfig::Enabled(true));
 
         let mut override_cfg = Config::default();
-        override_cfg.config.insert("MD002".to_string(), RuleConfig::Enabled(false));
+        override_cfg
+            .config
+            .insert("MD002".to_string(), RuleConfig::Enabled(false));
 
         let merged = merge_configs(base, override_cfg);
         assert_eq!(merged.config.len(), 2);

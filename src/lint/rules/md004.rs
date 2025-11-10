@@ -7,9 +7,9 @@ pub struct MD004;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ListMarker {
-    Asterisk,  // *
-    Plus,      // +
-    Dash,      // -
+    Asterisk, // *
+    Plus,     // +
+    Dash,     // -
 }
 
 impl Rule for MD004 {
@@ -26,9 +26,7 @@ impl Rule for MD004 {
     }
 
     fn check(&self, parser: &MarkdownParser, config: Option<&Value>) -> Vec<Violation> {
-        let style_config = config
-            .and_then(|c| c.get("style"))
-            .and_then(|v| v.as_str());
+        let style_config = config.and_then(|c| c.get("style")).and_then(|v| v.as_str());
 
         let mut violations = Vec::new();
         let mut first_marker: Option<ListMarker> = None;
@@ -63,10 +61,7 @@ impl Rule for MD004 {
                             line: line_number,
                             column: Some(line.len() - trimmed.len() + 1),
                             rule: self.name().to_string(),
-                            message: format!(
-                                "List marker style should be {:?}",
-                                required_marker
-                            ),
+                            message: format!("List marker style should be {:?}", required_marker),
                             fix: None,
                         });
                     }

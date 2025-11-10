@@ -7,9 +7,9 @@ pub struct MD003;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum HeadingStyle {
-    Atx,        // # Heading
-    AtxClosed,  // # Heading #
-    Setext,     // Heading\n======
+    Atx,       // # Heading
+    AtxClosed, // # Heading #
+    Setext,    // Heading\n======
 }
 
 impl Rule for MD003 {
@@ -26,9 +26,7 @@ impl Rule for MD003 {
     }
 
     fn check(&self, parser: &MarkdownParser, config: Option<&Value>) -> Vec<Violation> {
-        let style_config = config
-            .and_then(|c| c.get("style"))
-            .and_then(|v| v.as_str());
+        let style_config = config.and_then(|c| c.get("style")).and_then(|v| v.as_str());
 
         let mut violations = Vec::new();
         let mut first_style: Option<HeadingStyle> = None;

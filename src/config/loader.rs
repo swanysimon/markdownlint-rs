@@ -22,10 +22,7 @@ impl ConfigLoader {
             MarkdownlintError::Config(format!("Failed to read config file {:?}: {}", path, e))
         })?;
 
-        let file_name = path
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("");
+        let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
         Self::parse_config(&content, file_name, path)
     }
@@ -90,13 +87,10 @@ impl ConfigLoader {
 
     fn parse_jsonc(content: &str) -> Result<Config> {
         let parsed = jsonc_parser::parse_to_serde_value(content, &Default::default())
-            .map_err(|e| {
-                MarkdownlintError::Config(format!("Failed to parse JSONC: {:?}", e))
-            })?;
+            .map_err(|e| MarkdownlintError::Config(format!("Failed to parse JSONC: {:?}", e)))?;
 
-        let value = parsed.ok_or_else(|| {
-            MarkdownlintError::Config("JSONC config is empty".to_string())
-        })?;
+        let value =
+            parsed.ok_or_else(|| MarkdownlintError::Config("JSONC config is empty".to_string()))?;
 
         serde_json::from_value(value)
             .map_err(|e| MarkdownlintError::Config(format!("Invalid config structure: {}", e)))
@@ -108,12 +102,14 @@ impl ConfigLoader {
     }
 
     fn parse_package_json(content: &str) -> Result<Config> {
-        let package: serde_json::Value = serde_json::from_str(content)
-            .map_err(|e| MarkdownlintError::Config(format!("Failed to parse package.json: {}", e)))?;
+        let package: serde_json::Value = serde_json::from_str(content).map_err(|e| {
+            MarkdownlintError::Config(format!("Failed to parse package.json: {}", e))
+        })?;
 
         if let Some(config_value) = package.get("markdownlint-cli2") {
-            serde_json::from_value(config_value.clone())
-                .map_err(|e| MarkdownlintError::Config(format!("Invalid config in package.json: {}", e)))
+            serde_json::from_value(config_value.clone()).map_err(|e| {
+                MarkdownlintError::Config(format!("Invalid config in package.json: {}", e))
+            })
         } else {
             Ok(Config::default())
         }

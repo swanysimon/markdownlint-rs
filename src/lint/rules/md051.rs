@@ -72,7 +72,10 @@ impl Rule for MD051 {
                                 line: link_line,
                                 column: Some(1),
                                 rule: self.name().to_string(),
-                                message: format!("Link fragment '{}' does not match any heading", fragment),
+                                message: format!(
+                                    "Link fragment '{}' does not match any heading",
+                                    fragment
+                                ),
                                 fix: None,
                             });
                         }
@@ -88,7 +91,10 @@ impl Rule for MD051 {
                                     line: link_line,
                                     column: Some(1),
                                     rule: self.name().to_string(),
-                                    message: format!("Link fragment '{}' does not match any heading", fragment),
+                                    message: format!(
+                                        "Link fragment '{}' does not match any heading",
+                                        fragment
+                                    ),
                                     fix: None,
                                 });
                             }

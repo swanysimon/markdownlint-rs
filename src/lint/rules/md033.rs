@@ -37,9 +37,16 @@ impl Rule for MD033 {
                 let html_str = html.to_string();
                 let line = parser.offset_to_line(range.start);
 
+                // Skip closing tags - only report opening tags
+                if html_str.trim().starts_with("</") {
+                    continue;
+                }
+
                 // Extract tag name from HTML
                 if let Some(tag_name) = extract_tag_name(&html_str) {
-                    if !allowed_elements.is_empty() && !allowed_elements.contains(&tag_name.to_lowercase()) {
+                    if !allowed_elements.is_empty()
+                        && !allowed_elements.contains(&tag_name.to_lowercase())
+                    {
                         violations.push(Violation {
                             line,
                             column: Some(1),

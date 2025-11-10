@@ -124,7 +124,12 @@ fn fixes_overlap(a: &Fix, b: &Fix) -> bool {
 
     // If they share any lines, check column overlap
     if a.line_start == b.line_start && a.line_end == b.line_end {
-        match (&a.column_start, &a.column_end, &b.column_start, &b.column_end) {
+        match (
+            &a.column_start,
+            &a.column_end,
+            &b.column_start,
+            &b.column_end,
+        ) {
             (Some(a_start), Some(a_end), Some(b_start), Some(b_end)) => {
                 // Check column overlap
                 !(a_end < b_start || b_end < a_start)
@@ -165,7 +170,9 @@ fn apply_single_fix(lines: &mut Vec<String>, fix: &Fix) -> Result<()> {
             if col_start > chars.len() || col_end > chars.len() {
                 return Err(MarkdownlintError::Fix(format!(
                     "Fix column range {}..{} out of bounds for line length {}",
-                    col_start, col_end, chars.len()
+                    col_start,
+                    col_end,
+                    chars.len()
                 )));
             }
 
@@ -287,4 +294,3 @@ mod tests {
         assert_eq!(result, "line 1\r\nFIXED\r\nline 3");
     }
 }
-

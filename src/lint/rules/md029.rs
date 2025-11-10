@@ -27,10 +27,26 @@ impl Rule for MD029 {
         let mut violations = Vec::new();
         let mut expected_num = 1;
         let mut in_ordered_list = false;
+        let mut consecutive_blank_lines = 0;
+        let mut seen_non_one = false; // Track if we've seen any number other than 1
 
         for (line_num, line) in parser.lines().iter().enumerate() {
             let line_number = line_num + 1;
             let trimmed = line.trim_start();
+
+            // Track blank lines
+            if line.trim().is_empty() {
+                consecutive_blank_lines += 1;
+                // Only reset after 2+ consecutive blank lines
+                if consecutive_blank_lines >= 2 {
+                    in_ordered_list = false;
+                    expected_num = 1;
+                    seen_non_one = false;
+                }
+                continue;
+            } else {
+                consecutive_blank_lines = 0;
+            }
 
             // Check if this is an ordered list item
             if let Some(dot_pos) = trimmed.find('.') {
@@ -40,14 +56,25 @@ impl Rule for MD029 {
                         if !in_ordered_list {
                             in_ordered_list = true;
                             expected_num = 1;
+                            seen_non_one = false;
+                        }
+
+                        // Track if we've seen a non-1 number in this list
+                        if num != 1 {
+                            seen_non_one = true;
                         }
 
                         let is_valid = match style {
                             "one" => num == 1,
                             "ordered" => num == expected_num,
                             _ => {
-                                // "one_or_ordered" - accept either all 1s OR sequential
-                                num == 1 || num == expected_num
+                                // "one_or_ordered": if we've seen non-1, must be sequential
+                                // otherwise, allow either 1 or expected
+                                if seen_non_one {
+                                    num == expected_num
+                                } else {
+                                    num == 1 || num == expected_num
+                                }
                             }
                         };
 
@@ -68,20 +95,24 @@ impl Rule for MD029 {
                             });
                         }
 
-                        // Always set expected to be the next sequential number after what we saw
-                        expected_num = num + 1;
+                        // Increment expected based on what we EXPECTED, not what we saw
+                        // This ensures violations continue to be detected
+                        expected_num += 1;
                     }
                 } else {
+                    // Line has a dot but isn't a list item
                     in_ordered_list = false;
+                    expected_num = 1;
+                    seen_non_one = false;
                 }
-            } else if !line.trim().is_empty()
-                && !trimmed.starts_with("*")
+            } else if !trimmed.starts_with("*")
                 && !trimmed.starts_with("+")
                 && !trimmed.starts_with("-")
             {
                 // Non-list line that's not blank
                 in_ordered_list = false;
                 expected_num = 1;
+                seen_non_one = false;
             }
         }
 
@@ -124,8 +155,9 @@ mod tests {
         let rule = MD029;
         let violations = rule.check(&parser, None);
 
-        assert_eq!(violations.len(), 1);
+        assert_eq!(violations.len(), 2); // Lines 2 and 3 are wrong
         assert_eq!(violations[0].line, 2);
+        assert_eq!(violations[1].line, 3);
     }
 
     #[test]

@@ -20,11 +20,16 @@ impl Rule for MD054 {
     }
 
     fn check(&self, parser: &MarkdownParser, config: Option<&Value>) -> Vec<Violation> {
-        let style = config
-            .and_then(|c| c.get("style"))
-            .and_then(|v| v.as_str())
-            .unwrap_or("consistent");
+        // MD054 only checks when a specific style is configured
+        // Default behavior is to allow all styles (no checking)
+        let style = config.and_then(|c| c.get("style")).and_then(|v| v.as_str());
 
+        // If no style is configured, allow everything
+        if style.is_none() {
+            return Vec::new();
+        }
+
+        let style = style.unwrap();
         let mut violations = Vec::new();
         let mut first_style: Option<&str> = None;
 
@@ -39,7 +44,9 @@ impl Rule for MD054 {
                 if let Some(lt) = link_type {
                     let current_style = match lt {
                         LinkType::Inline => "inline",
-                        LinkType::Reference | LinkType::Collapsed | LinkType::Shortcut => "reference",
+                        LinkType::Reference | LinkType::Collapsed | LinkType::Shortcut => {
+                            "reference"
+                        }
                         _ => continue,
                     };
 
@@ -113,7 +120,8 @@ mod tests {
         let content = "[link1]: url1\n\n[Link](url) and [Ref][link1]";
         let parser = MarkdownParser::new(content);
         let rule = MD054;
-        let violations = rule.check(&parser, None);
+        let config = serde_json::json!({ "style": "consistent" });
+        let violations = rule.check(&parser, Some(&config));
 
         assert_eq!(violations.len(), 1);
     }

@@ -27,25 +27,27 @@ impl Rule for MD020 {
 
             // Check if this is a closed ATX heading (starts and ends with #)
             if trimmed.starts_with('#') && trimmed.ends_with('#') {
-                let parts: Vec<&str> = trimmed.split_whitespace().collect();
-                if parts.len() >= 2 {
-                    // Check if last part is all hashes
-                    if parts.last().unwrap().chars().all(|c| c == '#') {
-                        let closing_hashes = parts.last().unwrap();
+                // Count opening hashes
+                let opening_hashes = trimmed.chars().take_while(|&c| c == '#').count();
 
-                        // Find position of closing hashes in original line
-                        if let Some(pos) = trimmed.rfind(closing_hashes) {
-                            // Check if there's a space before the closing hashes
-                            if pos > 0 && trimmed.chars().nth(pos - 1) == Some(' ') {
-                                violations.push(Violation {
-                                    line: line_number,
-                                    column: Some(1),
-                                    rule: self.name().to_string(),
-                                    message: "No space inside hashes on closed atx style heading".to_string(),
-                                    fix: None,
-                                });
-                            }
-                        }
+                // Count closing hashes
+                let closing_hashes = trimmed.chars().rev().take_while(|&c| c == '#').count();
+
+                // Make sure there's content between opening and closing hashes
+                if opening_hashes + closing_hashes < trimmed.len() {
+                    // Get the character before the closing hashes
+                    let chars: Vec<char> = trimmed.chars().collect();
+                    let pos_before_closing = chars.len() - closing_hashes - 1;
+
+                    if chars[pos_before_closing] != ' ' {
+                        violations.push(Violation {
+                            line: line_number,
+                            column: Some(1),
+                            rule: self.name().to_string(),
+                            message: "No space inside hashes on closed atx style heading"
+                                .to_string(),
+                            fix: None,
+                        });
                     }
                 }
             }
@@ -65,22 +67,22 @@ mod tests {
 
     #[test]
     fn test_correct_closed_heading() {
-        let content = "# Heading#";
-        let parser = MarkdownParser::new(content);
-        let rule = MD020;
-        let violations = rule.check(&parser, None);
-
-        assert_eq!(violations.len(), 0);
-    }
-
-    #[test]
-    fn test_space_before_closing() {
         let content = "# Heading #";
         let parser = MarkdownParser::new(content);
         let rule = MD020;
         let violations = rule.check(&parser, None);
 
-        assert_eq!(violations.len(), 1);
+        assert_eq!(violations.len(), 0); // Has space, so it's correct
+    }
+
+    #[test]
+    fn test_no_space_before_closing() {
+        let content = "# Heading#";
+        let parser = MarkdownParser::new(content);
+        let rule = MD020;
+        let violations = rule.check(&parser, None);
+
+        assert_eq!(violations.len(), 1); // No space, violation
     }
 
     #[test]
@@ -95,11 +97,11 @@ mod tests {
 
     #[test]
     fn test_multiple_levels() {
-        let content = "## Heading ##\n### Another ###";
+        let content = "## Heading##\n### Another###";
         let parser = MarkdownParser::new(content);
         let rule = MD020;
         let violations = rule.check(&parser, None);
 
-        assert_eq!(violations.len(), 2);
+        assert_eq!(violations.len(), 2); // Both missing spaces
     }
 }

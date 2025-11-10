@@ -36,7 +36,12 @@ impl Rule for MD036 {
             // Simple patterns: **text**, *text*, __text__, _text_
             if is_emphasis_only_line(trimmed) {
                 // Check if it ends with punctuation (if so, likely not a heading)
-                if let Some(last_char) = trimmed.trim_end_matches('*').trim_end_matches('_').chars().last() {
+                if let Some(last_char) = trimmed
+                    .trim_end_matches('*')
+                    .trim_end_matches('_')
+                    .chars()
+                    .last()
+                {
                     if !punctuation.contains(last_char) {
                         // Likely being used as a heading
                         violations.push(Violation {
@@ -67,17 +72,29 @@ fn is_emphasis_only_line(line: &str) -> bool {
         || (trimmed.starts_with("__") && trimmed.ends_with("__") && trimmed.len() > 4)
     {
         // Make sure it's not just asterisks/underscores
-        let inner = trimmed.trim_start_matches('*').trim_start_matches('_')
-            .trim_end_matches('*').trim_end_matches('_');
+        let inner = trimmed
+            .trim_start_matches('*')
+            .trim_start_matches('_')
+            .trim_end_matches('*')
+            .trim_end_matches('_');
         return !inner.is_empty() && !inner.chars().all(|c| c == '*' || c == '_');
     }
 
     // Check for *text* or _text_ (emphasis)
-    if (trimmed.starts_with('*') && trimmed.ends_with('*') && !trimmed.starts_with("**") && trimmed.len() > 2)
-        || (trimmed.starts_with('_') && trimmed.ends_with('_') && !trimmed.starts_with("__") && trimmed.len() > 2)
+    if (trimmed.starts_with('*')
+        && trimmed.ends_with('*')
+        && !trimmed.starts_with("**")
+        && trimmed.len() > 2)
+        || (trimmed.starts_with('_')
+            && trimmed.ends_with('_')
+            && !trimmed.starts_with("__")
+            && trimmed.len() > 2)
     {
-        let inner = trimmed.trim_start_matches('*').trim_start_matches('_')
-            .trim_end_matches('*').trim_end_matches('_');
+        let inner = trimmed
+            .trim_start_matches('*')
+            .trim_start_matches('_')
+            .trim_end_matches('*')
+            .trim_end_matches('_');
         return !inner.is_empty() && !inner.chars().all(|c| c == '*' || c == '_');
     }
 

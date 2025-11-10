@@ -117,10 +117,7 @@ impl Rule for MD013 {
                     line: line_number,
                     column: Some(limit + 1),
                     rule: self.name().to_string(),
-                    message: format!(
-                        "Line exceeds maximum length ({} > {})",
-                        line_len, limit
-                    ),
+                    message: format!("Line exceeds maximum length ({} > {})", line_len, limit),
                     fix: None,
                 });
             }
@@ -172,7 +169,8 @@ mod tests {
 
     #[test]
     fn test_heading_exception() {
-        let content = "# This is a very long heading that would normally exceed the line length limit";
+        let content =
+            "# This is a very long heading that would normally exceed the line length limit";
         let parser = MarkdownParser::new(content);
         let rule = MD013;
         let config = serde_json::json!({ "headings": false });

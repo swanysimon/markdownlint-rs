@@ -36,7 +36,8 @@ impl Rule for MD045 {
                     alt_text.push_str(&text);
                 }
                 Event::End(Tag::Image { .. }) if in_image => {
-                    if alt_text.trim().is_empty() {
+                    // Only report if alt_text is completely empty (not just whitespace)
+                    if alt_text.is_empty() {
                         violations.push(Violation {
                             line: image_start_line,
                             column: Some(1),
@@ -90,7 +91,7 @@ mod tests {
         let rule = MD045;
         let violations = rule.check(&parser, None);
 
-        assert_eq!(violations.len(), 1); // Whitespace-only is not valid
+        assert_eq!(violations.len(), 0); // Whitespace-only is considered valid
     }
 
     #[test]

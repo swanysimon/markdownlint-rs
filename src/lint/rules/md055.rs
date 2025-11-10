@@ -37,11 +37,6 @@ impl Rule for MD055 {
 
             let trimmed = line.trim();
 
-            // Skip separator lines (e.g., |-----|-----|)
-            if trimmed.contains("---") || trimmed.contains(":--") || trimmed.contains("--:") {
-                continue;
-            }
-
             // Determine the style of this line
             let has_leading = trimmed.starts_with('|');
             let has_trailing = trimmed.ends_with('|');
@@ -56,36 +51,104 @@ impl Rule for MD055 {
             if style == "consistent" {
                 if let Some(first) = first_style {
                     if current_style != first {
-                        violations.push(Violation {
-                            line: line_number,
-                            column: Some(1),
-                            rule: self.name().to_string(),
-                            message: format!(
-                                "Table pipe style should be consistent: expected '{}', found '{}'",
-                                first, current_style
-                            ),
-                            fix: None,
-                        });
+                        // Report separate violations for leading and trailing mismatches
+                        let (first_leading, first_trailing) = match first {
+                            "leading_and_trailing" => (true, true),
+                            "leading_only" => (true, false),
+                            "trailing_only" => (false, true),
+                            "no_leading_or_trailing" => (false, false),
+                            _ => (false, false),
+                        };
+
+                        // Check leading pipe
+                        if has_leading != first_leading {
+                            violations.push(Violation {
+                                line: line_number,
+                                column: Some(1),
+                                rule: self.name().to_string(),
+                                message: format!(
+                                    "Table pipe style should be consistent: expected {}, found {}",
+                                    if first_leading {
+                                        "leading pipe"
+                                    } else {
+                                        "no leading pipe"
+                                    },
+                                    if has_leading {
+                                        "leading pipe"
+                                    } else {
+                                        "no leading pipe"
+                                    }
+                                ),
+                                fix: None,
+                            });
+                        }
+
+                        // Check trailing pipe
+                        if has_trailing != first_trailing {
+                            violations.push(Violation {
+                                line: line_number,
+                                column: Some(1),
+                                rule: self.name().to_string(),
+                                message: format!(
+                                    "Table pipe style should be consistent: expected {}, found {}",
+                                    if first_trailing {
+                                        "trailing pipe"
+                                    } else {
+                                        "no trailing pipe"
+                                    },
+                                    if has_trailing {
+                                        "trailing pipe"
+                                    } else {
+                                        "no trailing pipe"
+                                    }
+                                ),
+                                fix: None,
+                            });
+                        }
                     }
                 } else {
                     first_style = Some(current_style);
                 }
             } else if style == "leading_and_trailing" && current_style != "leading_and_trailing" {
-                violations.push(Violation {
-                    line: line_number,
-                    column: Some(1),
-                    rule: self.name().to_string(),
-                    message: "Table should have leading and trailing pipes".to_string(),
-                    fix: None,
-                });
+                // Report separate violations for missing leading/trailing
+                if !has_leading {
+                    violations.push(Violation {
+                        line: line_number,
+                        column: Some(1),
+                        rule: self.name().to_string(),
+                        message: "Table should have leading pipe".to_string(),
+                        fix: None,
+                    });
+                }
+                if !has_trailing {
+                    violations.push(Violation {
+                        line: line_number,
+                        column: Some(1),
+                        rule: self.name().to_string(),
+                        message: "Table should have trailing pipe".to_string(),
+                        fix: None,
+                    });
+                }
             } else if style == "no_leading_or_trailing" && (has_leading || has_trailing) {
-                violations.push(Violation {
-                    line: line_number,
-                    column: Some(1),
-                    rule: self.name().to_string(),
-                    message: "Table should not have leading or trailing pipes".to_string(),
-                    fix: None,
-                });
+                // Report separate violations for unwanted leading/trailing
+                if has_leading {
+                    violations.push(Violation {
+                        line: line_number,
+                        column: Some(1),
+                        rule: self.name().to_string(),
+                        message: "Table should not have leading pipe".to_string(),
+                        fix: None,
+                    });
+                }
+                if has_trailing {
+                    violations.push(Violation {
+                        line: line_number,
+                        column: Some(1),
+                        rule: self.name().to_string(),
+                        message: "Table should not have trailing pipe".to_string(),
+                        fix: None,
+                    });
+                }
             }
         }
 
@@ -128,7 +191,8 @@ mod tests {
         let rule = MD055;
         let violations = rule.check(&parser, None);
 
-        assert_eq!(violations.len(), 1);
+        // Last row is inconsistent: reports 2 violations (missing leading and trailing)
+        assert_eq!(violations.len(), 2);
     }
 
     #[test]
@@ -139,7 +203,8 @@ mod tests {
         let config = serde_json::json!({ "style": "leading_and_trailing" });
         let violations = rule.check(&parser, Some(&config));
 
-        assert_eq!(violations.len(), 2); // Header and data row
+        // 3 rows (header, separator, data) × 2 violations each (missing leading and trailing)
+        assert_eq!(violations.len(), 6);
     }
 
     #[test]

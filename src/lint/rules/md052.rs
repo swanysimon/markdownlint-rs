@@ -55,7 +55,11 @@ impl Rule for MD052 {
                         line: line_number,
                         column: Some(1),
                         rule: self.name().to_string(),
-                        message: format!("Reference {} label '{}' is not defined", item_type, cap.get(2).unwrap().as_str()),
+                        message: format!(
+                            "Reference {} label '{}' is not defined",
+                            item_type,
+                            cap.get(2).unwrap().as_str()
+                        ),
                         fix: None,
                     });
                 }

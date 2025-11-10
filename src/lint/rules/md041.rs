@@ -66,7 +66,9 @@ impl Rule for MD041 {
                     }
                     break;
                 }
-                Event::Text(_) | Event::Code(_) | Event::Start(Tag::Paragraph) if !found_first_heading => {
+                Event::Text(_) | Event::Code(_) | Event::Start(Tag::Paragraph)
+                    if !found_first_heading =>
+                {
                     // Non-heading content found first
                     violations.push(Violation {
                         line: 1,

@@ -3,7 +3,9 @@ use crate::glob::GlobMatcher;
 use ignore::WalkBuilder;
 use std::path::{Path, PathBuf};
 
-const MARKDOWN_EXTENSIONS: &[&str] = &["md", "markdown", "mdown", "mkdn", "mkd", "mdwn", "mdtxt", "mdtext"];
+const MARKDOWN_EXTENSIONS: &[&str] = &[
+    "md", "markdown", "mdown", "mkdn", "mkd", "mdwn", "mdtxt", "mdtext",
+];
 
 pub struct FileWalker {
     respect_gitignore: bool,
@@ -51,9 +53,7 @@ impl FileWalker {
             return self.find_markdown_files(root);
         }
 
-        let root = root.canonicalize().map_err(|e| {
-            MarkdownlintError::Io(e)
-        })?;
+        let root = root.canonicalize().map_err(|e| MarkdownlintError::Io(e))?;
 
         let mut builder = WalkBuilder::new(&root);
         builder.git_ignore(self.respect_gitignore);
@@ -170,7 +170,9 @@ mod tests {
 
         let matcher = GlobMatcher::new(&["docs/**/*.md".to_string()]).unwrap();
         let walker = FileWalker::new(false);
-        let files = walker.find_files_with_matcher(temp_dir.path(), &matcher).unwrap();
+        let files = walker
+            .find_files_with_matcher(temp_dir.path(), &matcher)
+            .unwrap();
 
         assert_eq!(files.len(), 1);
         assert!(files[0].ends_with("docs/guide.md"));

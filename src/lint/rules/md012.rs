@@ -38,23 +38,23 @@ impl Rule for MD012 {
                 consecutive_blank += 1;
             } else {
                 if consecutive_blank > maximum {
-                    violations.push(Violation {
-                        line: blank_start_line + maximum,
-                        column: Some(1),
-                        rule: self.name().to_string(),
-                        message: format!(
-                            "Multiple consecutive blank lines ({} blank lines, maximum allowed: {})",
-                            consecutive_blank, maximum
-                        ),
-                        fix: Some(Fix {
-                            line_start: blank_start_line + maximum,
-                            line_end: blank_start_line + consecutive_blank - 1,
-                            column_start: None,
-                            column_end: None,
-                            replacement: String::new(),
-                            description: "Remove excess blank lines".to_string(),
-                        }),
-                    });
+                    // Report a violation for each excess blank line
+                    for i in maximum..consecutive_blank {
+                        violations.push(Violation {
+                            line: blank_start_line + i,
+                            column: Some(1),
+                            rule: self.name().to_string(),
+                            message: format!("Expected: {}; Actual: {}", 1, consecutive_blank),
+                            fix: Some(Fix {
+                                line_start: blank_start_line + i,
+                                line_end: blank_start_line + i,
+                                column_start: None,
+                                column_end: None,
+                                replacement: String::new(),
+                                description: "Remove excess blank line".to_string(),
+                            }),
+                        });
+                    }
                 }
                 consecutive_blank = 0;
             }
@@ -62,23 +62,23 @@ impl Rule for MD012 {
 
         // Check if file ends with too many blank lines
         if consecutive_blank > maximum {
-            violations.push(Violation {
-                line: blank_start_line + maximum,
-                column: Some(1),
-                rule: self.name().to_string(),
-                message: format!(
-                    "Multiple consecutive blank lines ({} blank lines, maximum allowed: {})",
-                    consecutive_blank, maximum
-                ),
-                fix: Some(Fix {
-                    line_start: blank_start_line + maximum,
-                    line_end: blank_start_line + consecutive_blank - 1,
-                    column_start: None,
-                    column_end: None,
-                    replacement: String::new(),
-                    description: "Remove excess blank lines".to_string(),
-                }),
-            });
+            // Report a violation for each excess blank line
+            for i in maximum..consecutive_blank {
+                violations.push(Violation {
+                    line: blank_start_line + i,
+                    column: Some(1),
+                    rule: self.name().to_string(),
+                    message: format!("Expected: {}; Actual: {}", 1, consecutive_blank),
+                    fix: Some(Fix {
+                        line_start: blank_start_line + i,
+                        line_end: blank_start_line + i,
+                        column_start: None,
+                        column_end: None,
+                        replacement: String::new(),
+                        description: "Remove excess blank line".to_string(),
+                    }),
+                });
+            }
         }
 
         violations

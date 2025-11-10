@@ -51,7 +51,9 @@ impl Rule for MD021 {
                                     line: line_number,
                                     column: Some(1),
                                     rule: self.name().to_string(),
-                                    message: "Multiple spaces inside hashes on closed atx style heading".to_string(),
+                                    message:
+                                        "Multiple spaces inside hashes on closed atx style heading"
+                                            .to_string(),
                                     fix: None,
                                 });
                             }

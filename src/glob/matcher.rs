@@ -24,7 +24,10 @@ impl GlobMatcher {
             if let Some(exclude_pattern) = pattern.strip_prefix('#') {
                 let normalized = normalize_exclude_pattern(exclude_pattern);
                 let glob = Glob::new(&normalized).map_err(|e| {
-                    MarkdownlintError::InvalidGlob(format!("Invalid exclude pattern '{}': {}", exclude_pattern, e))
+                    MarkdownlintError::InvalidGlob(format!(
+                        "Invalid exclude pattern '{}': {}",
+                        exclude_pattern, e
+                    ))
                 })?;
                 exclude_builder.add(glob);
             } else {
@@ -101,7 +104,8 @@ mod tests {
             "**/*.md".to_string(),
             "#node_modules".to_string(),
             "#target".to_string(),
-        ]).unwrap();
+        ])
+        .unwrap();
 
         assert!(matcher.matches(Path::new("README.md")));
         assert!(matcher.matches(Path::new("docs/guide.md")));

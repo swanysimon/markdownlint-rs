@@ -29,9 +29,7 @@ impl Rule for MD005 {
             let line_number = line_num + 1;
 
             // Check if this is a list item
-            let is_list_item = line
-                .trim_start()
-                .starts_with("* ")
+            let is_list_item = line.trim_start().starts_with("* ")
                 || line.trim_start().starts_with("+ ")
                 || line.trim_start().starts_with("- ")
                 || line
