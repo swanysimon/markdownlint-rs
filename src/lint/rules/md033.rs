@@ -1,0 +1,133 @@
+use crate::lint::rule::Rule;
+use crate::markdown::MarkdownParser;
+use crate::types::Violation;
+use pulldown_cmark::Event;
+use serde_json::Value;
+
+pub struct MD033;
+
+impl Rule for MD033 {
+    fn name(&self) -> &str {
+        "MD033"
+    }
+
+    fn description(&self) -> &str {
+        "Inline HTML"
+    }
+
+    fn tags(&self) -> &[&str] {
+        &["html"]
+    }
+
+    fn check(&self, parser: &MarkdownParser, config: Option<&Value>) -> Vec<Violation> {
+        let allowed_elements: Vec<String> = config
+            .and_then(|c| c.get("allowed_elements"))
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(|s| s.to_lowercase()))
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        let mut violations = Vec::new();
+
+        for (event, range) in parser.parse_with_offsets() {
+            if let Event::Html(html) = event {
+                let html_str = html.to_string();
+                let line = parser.offset_to_line(range.start);
+
+                // Extract tag name from HTML
+                if let Some(tag_name) = extract_tag_name(&html_str) {
+                    if !allowed_elements.is_empty() && !allowed_elements.contains(&tag_name.to_lowercase()) {
+                        violations.push(Violation {
+                            line,
+                            column: Some(1),
+                            rule: self.name().to_string(),
+                            message: format!("Inline HTML element: <{}>", tag_name),
+                            fix: None,
+                        });
+                    } else if allowed_elements.is_empty() {
+                        violations.push(Violation {
+                            line,
+                            column: Some(1),
+                            rule: self.name().to_string(),
+                            message: format!("Inline HTML element: <{}>", tag_name),
+                            fix: None,
+                        });
+                    }
+                }
+            }
+        }
+
+        violations
+    }
+
+    fn fixable(&self) -> bool {
+        false
+    }
+}
+
+fn extract_tag_name(html: &str) -> Option<String> {
+    let trimmed = html.trim();
+    if trimmed.starts_with('<') {
+        // Handle opening tags, closing tags, and self-closing tags
+        let inner = trimmed.trim_start_matches('<').trim_start_matches('/');
+        if let Some(end_pos) = inner.find(|c: char| c.is_whitespace() || c == '>' || c == '/') {
+            Some(inner[..end_pos].to_string())
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_no_html() {
+        let content = "# Heading\n\nNormal **markdown** text.";
+        let parser = MarkdownParser::new(content);
+        let rule = MD033;
+        let violations = rule.check(&parser, None);
+
+        assert_eq!(violations.len(), 0);
+    }
+
+    #[test]
+    fn test_inline_html() {
+        let content = "Text with <br> tag";
+        let parser = MarkdownParser::new(content);
+        let rule = MD033;
+        let violations = rule.check(&parser, None);
+
+        assert_eq!(violations.len(), 1);
+        assert!(violations[0].message.contains("<br>"));
+    }
+
+    #[test]
+    fn test_allowed_elements() {
+        let content = "Text with <br> tag and <div>content</div>";
+        let parser = MarkdownParser::new(content);
+        let rule = MD033;
+        let config = serde_json::json!({ "allowed_elements": ["br"] });
+        let violations = rule.check(&parser, Some(&config));
+
+        // Only <div> should be flagged, <br> is allowed
+        assert!(violations.len() >= 1);
+        assert!(violations.iter().any(|v| v.message.contains("<div>")));
+    }
+
+    #[test]
+    fn test_block_html() {
+        let content = "<div>\nContent\n</div>";
+        let parser = MarkdownParser::new(content);
+        let rule = MD033;
+        let violations = rule.check(&parser, None);
+
+        assert!(violations.len() >= 1);
+    }
+}
