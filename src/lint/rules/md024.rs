@@ -76,7 +76,7 @@ impl Rule for MD024 {
                         }
                     } else {
                         // Check globally
-                        if let Some(&(first_line, first_level)) = heading_texts.get(&text) {
+                        if let Some(&(first_line, _first_level)) = heading_texts.get(&text) {
                             violations.push(Violation {
                                 line: current_heading_line,
                                 column: Some(1),
