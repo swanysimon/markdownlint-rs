@@ -1,4 +1,4 @@
-mod loader;
+pub mod loader;
 mod merge;
 mod types;
 
