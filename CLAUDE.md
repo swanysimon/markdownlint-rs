@@ -267,12 +267,12 @@ Port core rules from markdownlint library:
 - [x] MD012: Multiple consecutive blank lines (supports maximum config)
 - [x] MD013: Line length (supports line_length, heading_line_length, code_blocks, tables, headings config)
 
-### 5.3 Important Rules (Priority 2)
-- [ ] MD018: No space after hash on atx heading
-- [ ] MD019: Multiple spaces after hash on atx heading
-- [ ] MD022: Headings surrounded by blank lines
-- [ ] MD023: Headings must start at the beginning of the line
-- [ ] MD025: Multiple top-level headings
+### 5.3 Important Rules (Priority 2) - Partial
+- [x] MD018: No space after hash on atx heading
+- [x] MD019: Multiple spaces after hash on atx heading
+- [x] MD022: Headings surrounded by blank lines
+- [x] MD023: Headings must start at the beginning of the line
+- [x] MD025: Multiple top-level headings
 - [ ] MD027: Multiple spaces after blockquote symbol
 - [ ] MD028: Blank line inside blockquote
 - [ ] MD029: Ordered list item prefix

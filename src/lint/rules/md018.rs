@@ -1,0 +1,103 @@
+use crate::lint::rule::Rule;
+use crate::markdown::MarkdownParser;
+use crate::types::Violation;
+use serde_json::Value;
+
+pub struct MD018;
+
+impl Rule for MD018 {
+    fn name(&self) -> &str {
+        "MD018"
+    }
+
+    fn description(&self) -> &str {
+        "No space after hash on atx style heading"
+    }
+
+    fn tags(&self) -> &[&str] {
+        &["headings", "headers", "atx", "spaces"]
+    }
+
+    fn check(&self, parser: &MarkdownParser, _config: Option<&Value>) -> Vec<Violation> {
+        let mut violations = Vec::new();
+
+        for (line_num, line) in parser.lines().iter().enumerate() {
+            let line_number = line_num + 1;
+            let trimmed = line.trim();
+
+            // Check for ATX heading without space after hash
+            if trimmed.starts_with('#') {
+                // Count leading hashes
+                let hash_count = trimmed.chars().take_while(|&c| c == '#').count();
+
+                // Valid heading should have 1-6 hashes
+                if hash_count > 0 && hash_count <= 6 {
+                    // Check character after the hashes
+                    if let Some(next_char) = trimmed.chars().nth(hash_count) {
+                        if !next_char.is_whitespace() && next_char != '#' {
+                            violations.push(Violation {
+                                line: line_number,
+                                column: Some(hash_count + 1),
+                                rule: self.name().to_string(),
+                                message: "No space after hash on atx style heading".to_string(),
+                                fix: None,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        violations
+    }
+
+    fn fixable(&self) -> bool {
+        false
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_correct_spacing() {
+        let content = "# Heading 1\n## Heading 2\n### Heading 3";
+        let parser = MarkdownParser::new(content);
+        let rule = MD018;
+        let violations = rule.check(&parser, None);
+
+        assert_eq!(violations.len(), 0);
+    }
+
+    #[test]
+    fn test_no_space_after_hash() {
+        let content = "#Heading without space\n## Correct heading";
+        let parser = MarkdownParser::new(content);
+        let rule = MD018;
+        let violations = rule.check(&parser, None);
+
+        assert_eq!(violations.len(), 1);
+        assert_eq!(violations[0].line, 1);
+    }
+
+    #[test]
+    fn test_multiple_violations() {
+        let content = "#First\n##Second\n### Correct";
+        let parser = MarkdownParser::new(content);
+        let rule = MD018;
+        let violations = rule.check(&parser, None);
+
+        assert_eq!(violations.len(), 2);
+    }
+
+    #[test]
+    fn test_closed_heading() {
+        let content = "## Closed heading ##";
+        let parser = MarkdownParser::new(content);
+        let rule = MD018;
+        let violations = rule.check(&parser, None);
+
+        assert_eq!(violations.len(), 0);
+    }
+}
