@@ -43,6 +43,11 @@ mod md047;
 mod md048;
 mod md049;
 mod md050;
+mod md051;
+mod md052;
+mod md053;
+mod md054;
+mod md055;
 
 pub use md001::MD001;
 pub use md003::MD003;
@@ -89,6 +94,11 @@ pub use md047::MD047;
 pub use md048::MD048;
 pub use md049::MD049;
 pub use md050::MD050;
+pub use md051::MD051;
+pub use md052::MD052;
+pub use md053::MD053;
+pub use md054::MD054;
+pub use md055::MD055;
 
 use crate::lint::rule::RuleRegistry;
 
@@ -141,6 +151,11 @@ pub fn create_default_registry() -> RuleRegistry {
     registry.register(Box::new(MD048));
     registry.register(Box::new(MD049));
     registry.register(Box::new(MD050));
+    registry.register(Box::new(MD051));
+    registry.register(Box::new(MD052));
+    registry.register(Box::new(MD053));
+    registry.register(Box::new(MD054));
+    registry.register(Box::new(MD055));
 
     registry
 }

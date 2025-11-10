@@ -6,7 +6,8 @@ use markdownlint_rs::lint::rules::{
     create_default_registry, MD001, MD003, MD004, MD005, MD006, MD007, MD009, MD010, MD011, MD012,
     MD013, MD014, MD018, MD019, MD020, MD021, MD022, MD023, MD024, MD025, MD026, MD027, MD028,
     MD029, MD030, MD031, MD032, MD033, MD034, MD035, MD036, MD037, MD038, MD039, MD040, MD041,
-    MD042, MD043, MD044, MD045, MD046, MD047, MD048, MD049, MD050,
+    MD042, MD043, MD044, MD045, MD046, MD047, MD048, MD049, MD050, MD051, MD052, MD053, MD054,
+    MD055,
 };
 use markdownlint_rs::lint::Rule;
 use markdownlint_rs::markdown::MarkdownParser;
@@ -1949,6 +1950,206 @@ fn test_md050_compatibility() {
         assert_eq!(
             our.1, cli2.1,
             "Line number mismatch for MD050: ours={}, cli2={}",
+            our.1, cli2.1
+        );
+    }
+}
+
+#[test]
+#[ignore] // Slower test requiring Docker
+fn test_md051_compatibility() {
+    let fixture = Path::new("tests/fixtures/md051.md");
+    if !fixture.exists() {
+        panic!("Fixture file not found: {}", fixture.display());
+    }
+
+    let cli2_violations = run_markdownlint_cli2(fixture);
+    if cli2_violations.is_empty() && !docker_available() {
+        println!("Skipping test: Docker not available");
+        return;
+    }
+
+    let rule = MD051;
+    let our_violations = run_our_implementation(fixture, &rule);
+
+    println!("markdownlint-cli2 violations: {:?}", cli2_violations);
+    println!("Our violations: {:?}", our_violations);
+
+    let cli2_md051: Vec<_> = cli2_violations
+        .iter()
+        .filter(|(name, _)| name == "MD051")
+        .collect();
+
+    assert_eq!(
+        our_violations.len(),
+        cli2_md051.len(),
+        "Different number of MD051 violations detected"
+    );
+
+    for (our, cli2) in our_violations.iter().zip(cli2_md051.iter()) {
+        assert_eq!(
+            our.1, cli2.1,
+            "Line number mismatch for MD051: ours={}, cli2={}",
+            our.1, cli2.1
+        );
+    }
+}
+
+#[test]
+#[ignore] // Slower test requiring Docker
+fn test_md052_compatibility() {
+    let fixture = Path::new("tests/fixtures/md052.md");
+    if !fixture.exists() {
+        panic!("Fixture file not found: {}", fixture.display());
+    }
+
+    let cli2_violations = run_markdownlint_cli2(fixture);
+    if cli2_violations.is_empty() && !docker_available() {
+        println!("Skipping test: Docker not available");
+        return;
+    }
+
+    let rule = MD052;
+    let our_violations = run_our_implementation(fixture, &rule);
+
+    println!("markdownlint-cli2 violations: {:?}", cli2_violations);
+    println!("Our violations: {:?}", our_violations);
+
+    let cli2_md052: Vec<_> = cli2_violations
+        .iter()
+        .filter(|(name, _)| name == "MD052")
+        .collect();
+
+    assert_eq!(
+        our_violations.len(),
+        cli2_md052.len(),
+        "Different number of MD052 violations detected"
+    );
+
+    for (our, cli2) in our_violations.iter().zip(cli2_md052.iter()) {
+        assert_eq!(
+            our.1, cli2.1,
+            "Line number mismatch for MD052: ours={}, cli2={}",
+            our.1, cli2.1
+        );
+    }
+}
+
+#[test]
+#[ignore] // Slower test requiring Docker
+fn test_md053_compatibility() {
+    let fixture = Path::new("tests/fixtures/md053.md");
+    if !fixture.exists() {
+        panic!("Fixture file not found: {}", fixture.display());
+    }
+
+    let cli2_violations = run_markdownlint_cli2(fixture);
+    if cli2_violations.is_empty() && !docker_available() {
+        println!("Skipping test: Docker not available");
+        return;
+    }
+
+    let rule = MD053;
+    let our_violations = run_our_implementation(fixture, &rule);
+
+    println!("markdownlint-cli2 violations: {:?}", cli2_violations);
+    println!("Our violations: {:?}", our_violations);
+
+    let cli2_md053: Vec<_> = cli2_violations
+        .iter()
+        .filter(|(name, _)| name == "MD053")
+        .collect();
+
+    assert_eq!(
+        our_violations.len(),
+        cli2_md053.len(),
+        "Different number of MD053 violations detected"
+    );
+
+    for (our, cli2) in our_violations.iter().zip(cli2_md053.iter()) {
+        assert_eq!(
+            our.1, cli2.1,
+            "Line number mismatch for MD053: ours={}, cli2={}",
+            our.1, cli2.1
+        );
+    }
+}
+
+#[test]
+#[ignore] // Slower test requiring Docker
+fn test_md054_compatibility() {
+    let fixture = Path::new("tests/fixtures/md054.md");
+    if !fixture.exists() {
+        panic!("Fixture file not found: {}", fixture.display());
+    }
+
+    let cli2_violations = run_markdownlint_cli2(fixture);
+    if cli2_violations.is_empty() && !docker_available() {
+        println!("Skipping test: Docker not available");
+        return;
+    }
+
+    let rule = MD054;
+    let our_violations = run_our_implementation(fixture, &rule);
+
+    println!("markdownlint-cli2 violations: {:?}", cli2_violations);
+    println!("Our violations: {:?}", our_violations);
+
+    let cli2_md054: Vec<_> = cli2_violations
+        .iter()
+        .filter(|(name, _)| name == "MD054")
+        .collect();
+
+    assert_eq!(
+        our_violations.len(),
+        cli2_md054.len(),
+        "Different number of MD054 violations detected"
+    );
+
+    for (our, cli2) in our_violations.iter().zip(cli2_md054.iter()) {
+        assert_eq!(
+            our.1, cli2.1,
+            "Line number mismatch for MD054: ours={}, cli2={}",
+            our.1, cli2.1
+        );
+    }
+}
+
+#[test]
+#[ignore] // Slower test requiring Docker
+fn test_md055_compatibility() {
+    let fixture = Path::new("tests/fixtures/md055.md");
+    if !fixture.exists() {
+        panic!("Fixture file not found: {}", fixture.display());
+    }
+
+    let cli2_violations = run_markdownlint_cli2(fixture);
+    if cli2_violations.is_empty() && !docker_available() {
+        println!("Skipping test: Docker not available");
+        return;
+    }
+
+    let rule = MD055;
+    let our_violations = run_our_implementation(fixture, &rule);
+
+    println!("markdownlint-cli2 violations: {:?}", cli2_violations);
+    println!("Our violations: {:?}", our_violations);
+
+    let cli2_md055: Vec<_> = cli2_violations
+        .iter()
+        .filter(|(name, _)| name == "MD055")
+        .collect();
+
+    assert_eq!(
+        our_violations.len(),
+        cli2_md055.len(),
+        "Different number of MD055 violations detected"
+    );
+
+    for (our, cli2) in our_violations.iter().zip(cli2_md055.iter()) {
+        assert_eq!(
+            our.1, cli2.1,
+            "Line number mismatch for MD055: ours={}, cli2={}",
             our.1, cli2.1
         );
     }
