@@ -23,7 +23,7 @@ impl Rule for MD026 {
         let punctuation = config
             .and_then(|c| c.get("punctuation"))
             .and_then(|v| v.as_str())
-            .unwrap_or(".,;:!?");
+            .unwrap_or(".,;:!");
 
         let mut violations = Vec::new();
         let mut in_heading = false;
@@ -105,8 +105,8 @@ mod tests {
         let rule = MD026;
         let violations = rule.check(&parser, None);
 
-        assert_eq!(violations.len(), 1);
-        assert!(violations[0].message.contains("'?'"));
+        // Question marks are not in the default punctuation set
+        assert_eq!(violations.len(), 0);
     }
 
     #[test]

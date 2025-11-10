@@ -86,10 +86,7 @@ impl Rule for MD032 {
 
 fn is_list_line(trimmed: &str) -> bool {
     // Check for unordered list markers
-    if trimmed.starts_with("* ")
-        || trimmed.starts_with("+ ")
-        || trimmed.starts_with("- ")
-    {
+    if trimmed.starts_with("* ") || trimmed.starts_with("+ ") || trimmed.starts_with("- ") {
         return true;
     }
 

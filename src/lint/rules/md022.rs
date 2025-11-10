@@ -56,7 +56,9 @@ impl Rule for MD022 {
                 // Allow another heading right after (for closed headings or setext underlines)
                 if !next_line.is_empty()
                     && !next_line.starts_with('#')
-                    && !next_line.chars().all(|c| c == '=' || c == '-' || c.is_whitespace())
+                    && !next_line
+                        .chars()
+                        .all(|c| c == '=' || c == '-' || c.is_whitespace())
                 {
                     violations.push(Violation {
                         line: heading_line,

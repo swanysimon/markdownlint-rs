@@ -99,7 +99,10 @@ fn is_separator_line(line: &str) -> bool {
 /// Parse alignment from separator line
 fn parse_alignments(line: &str) -> Vec<&str> {
     let trimmed = line.trim();
-    let parts: Vec<&str> = trimmed.split('|').filter(|s| !s.trim().is_empty()).collect();
+    let parts: Vec<&str> = trimmed
+        .split('|')
+        .filter(|s| !s.trim().is_empty())
+        .collect();
 
     parts
         .iter()

@@ -34,7 +34,17 @@ impl Rule for MD039 {
                 if let Some(bracket_end) = matched_text.find(']') {
                     let link_text = &matched_text[1..bracket_end];
 
-                    if link_text.starts_with(' ') || link_text.ends_with(' ') {
+                    // Report separate violations for leading and trailing spaces
+                    if link_text.starts_with(' ') {
+                        violations.push(Violation {
+                            line: line_number,
+                            column: Some(mat.start() + 1),
+                            rule: self.name().to_string(),
+                            message: "Spaces inside link text".to_string(),
+                            fix: None,
+                        });
+                    }
+                    if link_text.ends_with(' ') {
                         violations.push(Violation {
                             line: line_number,
                             column: Some(mat.start() + 1),
@@ -96,6 +106,7 @@ mod tests {
         let rule = MD039;
         let violations = rule.check(&parser, None);
 
-        assert_eq!(violations.len(), 1);
+        // Should report 2 violations: one for leading space, one for trailing
+        assert_eq!(violations.len(), 2);
     }
 }

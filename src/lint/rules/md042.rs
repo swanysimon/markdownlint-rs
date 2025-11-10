@@ -21,31 +21,22 @@ impl Rule for MD042 {
 
     fn check(&self, parser: &MarkdownParser, _config: Option<&Value>) -> Vec<Violation> {
         let mut violations = Vec::new();
-        let mut in_link = false;
-        let mut link_start_line = 0;
-        let mut link_text = String::new();
 
         for (event, range) in parser.parse_with_offsets() {
             match event {
-                Event::Start(Tag::Link { .. }) => {
-                    in_link = true;
-                    link_start_line = parser.offset_to_line(range.start);
-                    link_text.clear();
-                }
-                Event::Text(text) if in_link => {
-                    link_text.push_str(&text);
-                }
-                Event::End(Tag::Link { .. }) if in_link => {
-                    if link_text.trim().is_empty() {
+                Event::Start(Tag::Link(_, url, _)) => {
+                    // Check if the destination URL is empty or only contains "#"
+                    let url_str = url.to_string();
+                    if url_str.is_empty() || url_str == "#" {
+                        let line = parser.offset_to_line(range.start);
                         violations.push(Violation {
-                            line: link_start_line,
+                            line,
                             column: Some(1),
                             rule: self.name().to_string(),
                             message: "No empty links".to_string(),
                             fix: None,
                         });
                     }
-                    in_link = false;
                 }
                 _ => {}
             }
@@ -74,32 +65,44 @@ mod tests {
     }
 
     #[test]
-    fn test_empty_link() {
+    fn test_empty_destination() {
+        let content = "[Link text]()";
+        let parser = MarkdownParser::new(content);
+        let rule = MD042;
+        let violations = rule.check(&parser, None);
+
+        assert_eq!(violations.len(), 1);
+    }
+
+    #[test]
+    fn test_empty_text_non_empty_url() {
         let content = "[](https://example.com)";
         let parser = MarkdownParser::new(content);
         let rule = MD042;
         let violations = rule.check(&parser, None);
 
-        assert_eq!(violations.len(), 1);
+        // Empty link text is fine, MD042 is about empty destinations
+        assert_eq!(violations.len(), 0);
     }
 
     #[test]
-    fn test_whitespace_only_link() {
-        let content = "[  ](https://example.com)";
+    fn test_empty_fragment() {
+        let content = "[Link](#)";
         let parser = MarkdownParser::new(content);
         let rule = MD042;
         let violations = rule.check(&parser, None);
 
+        // Empty fragment should trigger MD042
         assert_eq!(violations.len(), 1);
     }
 
     #[test]
     fn test_multiple_links() {
-        let content = "[Good](url1) and [](url2) and [Also good](url3)";
+        let content = "[Good](url1) and [Bad]() and [Also good](url3)";
         let parser = MarkdownParser::new(content);
         let rule = MD042;
         let violations = rule.check(&parser, None);
 
-        assert_eq!(violations.len(), 1); // Only second link is empty
+        assert_eq!(violations.len(), 1); // Only second link has empty destination
     }
 }

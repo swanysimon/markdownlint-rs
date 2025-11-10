@@ -26,68 +26,79 @@ impl Rule for MD048 {
 
         let mut violations = Vec::new();
         let mut first_style: Option<char> = None;
+        let mut in_code_block = false;
 
         for (line_num, line) in parser.lines().iter().enumerate() {
             let line_number = line_num + 1;
             let trimmed = line.trim();
 
-            // Check if line is a code fence opening
+            // Check if line is a code fence (opening or closing)
             if trimmed.starts_with("```") {
-                let fence_char = '`';
-                if style == "consistent" {
-                    if let Some(first) = first_style {
-                        if fence_char != first {
-                            violations.push(Violation {
-                                line: line_number,
-                                column: Some(1),
-                                rule: self.name().to_string(),
-                                message: format!(
-                                    "Code fence style should be consistent: expected '{}', found '{}'",
-                                    first, fence_char
-                                ),
-                                fix: None,
-                            });
+                // Only check opening fence, not closing
+                if !in_code_block {
+                    let fence_char = '`';
+                    if style == "consistent" {
+                        if let Some(first) = first_style {
+                            if fence_char != first {
+                                violations.push(Violation {
+                                    line: line_number,
+                                    column: Some(1),
+                                    rule: self.name().to_string(),
+                                    message: format!(
+                                        "Code fence style should be consistent: expected '{}', found '{}'",
+                                        first, fence_char
+                                    ),
+                                    fix: None,
+                                });
+                            }
+                        } else {
+                            first_style = Some(fence_char);
                         }
-                    } else {
-                        first_style = Some(fence_char);
+                    } else if style == "tilde" {
+                        violations.push(Violation {
+                            line: line_number,
+                            column: Some(1),
+                            rule: self.name().to_string(),
+                            message: "Code fence style should be 'tilde' (~), found backtick (`)"
+                                .to_string(),
+                            fix: None,
+                        });
                     }
-                } else if style == "tilde" {
-                    violations.push(Violation {
-                        line: line_number,
-                        column: Some(1),
-                        rule: self.name().to_string(),
-                        message: "Code fence style should be 'tilde' (~), found backtick (`)".to_string(),
-                        fix: None,
-                    });
                 }
+                in_code_block = !in_code_block;
             } else if trimmed.starts_with("~~~") {
-                let fence_char = '~';
-                if style == "consistent" {
-                    if let Some(first) = first_style {
-                        if fence_char != first {
-                            violations.push(Violation {
-                                line: line_number,
-                                column: Some(1),
-                                rule: self.name().to_string(),
-                                message: format!(
-                                    "Code fence style should be consistent: expected '{}', found '{}'",
-                                    first, fence_char
-                                ),
-                                fix: None,
-                            });
+                // Only check opening fence, not closing
+                if !in_code_block {
+                    let fence_char = '~';
+                    if style == "consistent" {
+                        if let Some(first) = first_style {
+                            if fence_char != first {
+                                violations.push(Violation {
+                                    line: line_number,
+                                    column: Some(1),
+                                    rule: self.name().to_string(),
+                                    message: format!(
+                                        "Code fence style should be consistent: expected '{}', found '{}'",
+                                        first, fence_char
+                                    ),
+                                    fix: None,
+                                });
+                            }
+                        } else {
+                            first_style = Some(fence_char);
                         }
-                    } else {
-                        first_style = Some(fence_char);
+                    } else if style == "backtick" {
+                        violations.push(Violation {
+                            line: line_number,
+                            column: Some(1),
+                            rule: self.name().to_string(),
+                            message: "Code fence style should be 'backtick' (`), found tilde (~)"
+                                .to_string(),
+                            fix: None,
+                        });
                     }
-                } else if style == "backtick" {
-                    violations.push(Violation {
-                        line: line_number,
-                        column: Some(1),
-                        rule: self.name().to_string(),
-                        message: "Code fence style should be 'backtick' (`), found tilde (~)".to_string(),
-                        fix: None,
-                    });
                 }
+                in_code_block = !in_code_block;
             }
         }
 
@@ -130,7 +141,7 @@ mod tests {
         let rule = MD048;
         let violations = rule.check(&parser, None);
 
-        assert_eq!(violations.len(), 2); // Opening and closing of second block
+        assert_eq!(violations.len(), 1); // Only opening of second block
     }
 
     #[test]
@@ -141,6 +152,6 @@ mod tests {
         let config = serde_json::json!({ "style": "backtick" });
         let violations = rule.check(&parser, Some(&config));
 
-        assert_eq!(violations.len(), 2); // Opening and closing
+        assert_eq!(violations.len(), 1); // Only opening
     }
 }

@@ -24,18 +24,27 @@ impl Rule for MD037 {
 
         // Regex patterns to detect spaces inside emphasis markers
         let strong_asterisk = Regex::new(r"\*\* .+? \*\*").unwrap(); // ** text **
-        let strong_underscore = Regex::new(r"__ .+? __").unwrap();   // __ text __
-        let em_asterisk = Regex::new(r"\* .+? \*").unwrap();         // * text *
-        let em_underscore = Regex::new(r"_ .+? _").unwrap();         // _ text _
+        let strong_underscore = Regex::new(r"__ .+? __").unwrap(); // __ text __
+        let em_asterisk = Regex::new(r"\* .+? \*").unwrap(); // * text *
+        let em_underscore = Regex::new(r"_ .+? _").unwrap(); // _ text _
 
         for (line_num, line) in parser.lines().iter().enumerate() {
             let line_number = line_num + 1;
 
             // Check for ** text **
             for mat in strong_asterisk.find_iter(line) {
+                // Report violation for opening marker (space after **)
                 violations.push(Violation {
                     line: line_number,
                     column: Some(mat.start() + 1),
+                    rule: self.name().to_string(),
+                    message: "Spaces inside emphasis markers".to_string(),
+                    fix: None,
+                });
+                // Report violation for closing marker (space before **)
+                violations.push(Violation {
+                    line: line_number,
+                    column: Some(mat.end() - 2), // Position of closing **
                     rule: self.name().to_string(),
                     message: "Spaces inside emphasis markers".to_string(),
                     fix: None,
@@ -44,9 +53,18 @@ impl Rule for MD037 {
 
             // Check for __ text __
             for mat in strong_underscore.find_iter(line) {
+                // Report violation for opening marker
                 violations.push(Violation {
                     line: line_number,
                     column: Some(mat.start() + 1),
+                    rule: self.name().to_string(),
+                    message: "Spaces inside emphasis markers".to_string(),
+                    fix: None,
+                });
+                // Report violation for closing marker
+                violations.push(Violation {
+                    line: line_number,
+                    column: Some(mat.end() - 2),
                     rule: self.name().to_string(),
                     message: "Spaces inside emphasis markers".to_string(),
                     fix: None,
@@ -62,9 +80,17 @@ impl Rule for MD037 {
                     || (after_pos < line.len() && line.chars().nth(after_pos) == Some('*'));
 
                 if !is_strong {
+                    // Report violations for both opening and closing markers
                     violations.push(Violation {
                         line: line_number,
                         column: Some(mat.start() + 1),
+                        rule: self.name().to_string(),
+                        message: "Spaces inside emphasis markers".to_string(),
+                        fix: None,
+                    });
+                    violations.push(Violation {
+                        line: line_number,
+                        column: Some(mat.end()),
                         rule: self.name().to_string(),
                         message: "Spaces inside emphasis markers".to_string(),
                         fix: None,
@@ -80,9 +106,17 @@ impl Rule for MD037 {
                     || (after_pos < line.len() && line.chars().nth(after_pos) == Some('_'));
 
                 if !is_strong {
+                    // Report violations for both opening and closing markers
                     violations.push(Violation {
                         line: line_number,
                         column: Some(mat.start() + 1),
+                        rule: self.name().to_string(),
+                        message: "Spaces inside emphasis markers".to_string(),
+                        fix: None,
+                    });
+                    violations.push(Violation {
+                        line: line_number,
+                        column: Some(mat.end()),
                         rule: self.name().to_string(),
                         message: "Spaces inside emphasis markers".to_string(),
                         fix: None,
@@ -120,7 +154,7 @@ mod tests {
         let rule = MD037;
         let violations = rule.check(&parser, None);
 
-        assert_eq!(violations.len(), 1);
+        assert_eq!(violations.len(), 2); // One for opening, one for closing
     }
 
     #[test]
@@ -130,7 +164,7 @@ mod tests {
         let rule = MD037;
         let violations = rule.check(&parser, None);
 
-        assert_eq!(violations.len(), 1);
+        assert_eq!(violations.len(), 2); // One for opening, one for closing
     }
 
     #[test]
@@ -140,6 +174,6 @@ mod tests {
         let rule = MD037;
         let violations = rule.check(&parser, None);
 
-        assert_eq!(violations.len(), 1);
+        assert_eq!(violations.len(), 2); // One for opening, one for closing
     }
 }

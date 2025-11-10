@@ -34,7 +34,7 @@ impl Rule for MD050 {
             let chars: Vec<char> = line.chars().collect();
             let mut i = 0;
 
-            while i < chars.len() - 1 {
+            while i + 1 < chars.len() {
                 // Check for ** or __
                 if i + 1 < chars.len() {
                     let two_char = format!("{}{}", chars[i], chars[i + 1]);
@@ -42,7 +42,7 @@ impl Rule for MD050 {
                     if two_char == "**" || two_char == "__" {
                         // Find closing marker
                         let mut found_close = false;
-                        for j in (i + 2)..chars.len() - 1 {
+                        for j in (i + 2)..chars.len().saturating_sub(1) {
                             if j + 1 < chars.len() {
                                 let close_two = format!("{}{}", chars[j], chars[j + 1]);
                                 if close_two == two_char {
@@ -58,6 +58,7 @@ impl Rule for MD050 {
                                     if style == "consistent" {
                                         if let Some(first) = first_style {
                                             if current_style != first {
+                                                // Report violation for both opening and closing markers
                                                 violations.push(Violation {
                                                     line: line_number,
                                                     column: Some(i + 1),
@@ -69,13 +70,26 @@ impl Rule for MD050 {
                                                     ),
                                                     fix: None,
                                                 });
+                                                violations.push(Violation {
+                                                    line: line_number,
+                                                    column: Some(j + 1),
+                                                    rule: self.name().to_string(),
+                                                    message: format!(
+                                                        "Strong style should be consistent: expected '{}', found '{}'",
+                                                        if first == "asterisk" { "**" } else { "__" },
+                                                        close_two
+                                                    ),
+                                                    fix: None,
+                                                });
                                             }
                                         } else {
                                             first_style = Some(current_style);
                                         }
                                     } else {
-                                        let expected_marker = if style == "asterisk" { "**" } else { "__" };
+                                        let expected_marker =
+                                            if style == "asterisk" { "**" } else { "__" };
                                         if two_char != expected_marker {
+                                            // Report violation for both opening and closing markers
                                             violations.push(Violation {
                                                 line: line_number,
                                                 column: Some(i + 1),
@@ -83,6 +97,16 @@ impl Rule for MD050 {
                                                 message: format!(
                                                     "Strong style should be '{}', found '{}'",
                                                     expected_marker, two_char
+                                                ),
+                                                fix: None,
+                                            });
+                                            violations.push(Violation {
+                                                line: line_number,
+                                                column: Some(j + 1),
+                                                rule: self.name().to_string(),
+                                                message: format!(
+                                                    "Strong style should be '{}', found '{}'",
+                                                    expected_marker, close_two
                                                 ),
                                                 fix: None,
                                             });
@@ -145,7 +169,8 @@ mod tests {
         let rule = MD050;
         let violations = rule.check(&parser, None);
 
-        assert_eq!(violations.len(), 1);
+        // Reports violation for both opening and closing markers of the second strong emphasis
+        assert_eq!(violations.len(), 2);
     }
 
     #[test]
@@ -156,6 +181,7 @@ mod tests {
         let config = serde_json::json!({ "style": "asterisk" });
         let violations = rule.check(&parser, Some(&config));
 
-        assert_eq!(violations.len(), 1);
+        // Reports violation for both opening and closing markers
+        assert_eq!(violations.len(), 2);
     }
 }

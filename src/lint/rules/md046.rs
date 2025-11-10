@@ -57,7 +57,8 @@ impl Rule for MD046 {
                             line,
                             column: Some(1),
                             rule: self.name().to_string(),
-                            message: "Code block style should be 'indented', found 'fenced'".to_string(),
+                            message: "Code block style should be 'indented', found 'fenced'"
+                                .to_string(),
                             fix: None,
                         });
                     }
@@ -87,7 +88,8 @@ impl Rule for MD046 {
                             line,
                             column: Some(1),
                             rule: self.name().to_string(),
-                            message: "Code block style should be 'fenced', found 'indented'".to_string(),
+                            message: "Code block style should be 'fenced', found 'indented'"
+                                .to_string(),
                             fix: None,
                         });
                     }

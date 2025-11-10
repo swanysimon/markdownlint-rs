@@ -52,14 +52,25 @@ impl Rule for MD049 {
                                     || (j > 0 && chars[j - 1] == ch);
 
                                 if !close_is_strong {
-
-                                    // Track style
+                                    // Track style and report violations for both opening and closing
                                     if style == "consistent" {
                                         if let Some(first) = first_style {
                                             if ch != first {
+                                                // Report violation for opening marker
                                                 violations.push(Violation {
                                                     line: line_number,
                                                     column: Some(i + 1),
+                                                    rule: self.name().to_string(),
+                                                    message: format!(
+                                                        "Emphasis style should be consistent: expected '{}', found '{}'",
+                                                        first, ch
+                                                    ),
+                                                    fix: None,
+                                                });
+                                                // Report violation for closing marker
+                                                violations.push(Violation {
+                                                    line: line_number,
+                                                    column: Some(j + 1),
                                                     rule: self.name().to_string(),
                                                     message: format!(
                                                         "Emphasis style should be consistent: expected '{}', found '{}'",
@@ -74,9 +85,21 @@ impl Rule for MD049 {
                                     } else {
                                         let expected = if style == "asterisk" { '*' } else { '_' };
                                         if ch != expected {
+                                            // Report violation for opening marker
                                             violations.push(Violation {
                                                 line: line_number,
                                                 column: Some(i + 1),
+                                                rule: self.name().to_string(),
+                                                message: format!(
+                                                    "Emphasis style should be '{}', found '{}'",
+                                                    expected, ch
+                                                ),
+                                                fix: None,
+                                            });
+                                            // Report violation for closing marker
+                                            violations.push(Violation {
+                                                line: line_number,
+                                                column: Some(j + 1),
                                                 rule: self.name().to_string(),
                                                 message: format!(
                                                     "Emphasis style should be '{}', found '{}'",
@@ -138,7 +161,8 @@ mod tests {
         let rule = MD049;
         let violations = rule.check(&parser, None);
 
-        assert_eq!(violations.len(), 1);
+        // Reports violation for both opening and closing markers of the second emphasis
+        assert_eq!(violations.len(), 2);
     }
 
     #[test]
@@ -149,6 +173,7 @@ mod tests {
         let config = serde_json::json!({ "style": "asterisk" });
         let violations = rule.check(&parser, Some(&config));
 
-        assert_eq!(violations.len(), 1);
+        // Reports violation for both opening and closing markers
+        assert_eq!(violations.len(), 2);
     }
 }

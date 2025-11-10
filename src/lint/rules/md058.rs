@@ -36,31 +36,20 @@ impl Rule for MD058 {
                             line: i + 1,
                             column: Some(1),
                             rule: self.name().to_string(),
-                            message: "Table should be surrounded by blank lines (before)".to_string(),
+                            message: "Table should be surrounded by blank lines".to_string(),
                             fix: None,
                         });
                     }
 
-                    // Find end of table
+                    // Skip to end of table (but don't check for blank line after,
+                    // since Markdown spec treats following text as part of the table)
                     i += 2; // Skip header and separator
                     while i < lines.len() {
                         let current = lines[i].trim();
-                        if !current.contains('|') || is_separator_line(current) {
+                        if !current.contains('|') {
                             break;
                         }
                         i += 1;
-                    }
-
-                    // Check for blank line after table
-                    let table_end = i - 1;
-                    if table_end + 1 < lines.len() && !lines[table_end + 1].trim().is_empty() {
-                        violations.push(Violation {
-                            line: table_end + 2, // +1 for 1-indexed, +1 for line after
-                            column: Some(1),
-                            rule: self.name().to_string(),
-                            message: "Table should be surrounded by blank lines (after)".to_string(),
-                            fix: None,
-                        });
                     }
 
                     continue;
@@ -116,7 +105,8 @@ mod tests {
         let rule = MD058;
         let violations = rule.check(&parser, None);
 
-        assert_eq!(violations.len(), 1);
+        // Markdown spec treats text after table as part of the table, so no violation
+        assert_eq!(violations.len(), 0);
     }
 
     #[test]
@@ -126,7 +116,8 @@ mod tests {
         let rule = MD058;
         let violations = rule.check(&parser, None);
 
-        assert_eq!(violations.len(), 2);
+        // Only violation is missing blank line before table
+        assert_eq!(violations.len(), 1);
     }
 
     #[test]

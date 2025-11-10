@@ -32,7 +32,9 @@ fn run_markdownlint_cli2(file_path: &Path) -> Vec<(String, usize)> {
         return Vec::new();
     }
 
-    let absolute_path = file_path.canonicalize().expect("Failed to canonicalize path");
+    let absolute_path = file_path
+        .canonicalize()
+        .expect("Failed to canonicalize path");
     let parent_dir = absolute_path.parent().expect("Failed to get parent dir");
     let file_name = absolute_path.file_name().expect("Failed to get filename");
 
@@ -59,8 +61,16 @@ fn run_markdownlint_cli2(file_path: &Path) -> Vec<(String, usize)> {
     for line in stdout.lines().chain(stderr.lines()) {
         if line.contains("MD0") {
             let parts: Vec<&str> = line.split(':').collect();
-            if parts.len() >= 3 {
-                if let Ok(line_num) = parts[1].trim().parse::<usize>() {
+            if parts.len() >= 2 {
+                // parts[1] could be "5 MD001/..." or "5" (if column is present)
+                // Extract just the line number by taking first whitespace-separated token
+                if let Ok(line_num) = parts[1]
+                    .trim()
+                    .split_whitespace()
+                    .next()
+                    .unwrap_or("")
+                    .parse::<usize>()
+                {
                     // Extract rule name (MD###)
                     if let Some(md_part) = line.split_whitespace().find(|s| s.starts_with("MD")) {
                         let rule_name = md_part.split('/').next().unwrap_or(md_part);
@@ -76,10 +86,7 @@ fn run_markdownlint_cli2(file_path: &Path) -> Vec<(String, usize)> {
 }
 
 /// Run our implementation and extract violations
-fn run_our_implementation(
-    file_path: &Path,
-    rule: &dyn Rule,
-) -> Vec<(String, usize)> {
+fn run_our_implementation(file_path: &Path, rule: &dyn Rule) -> Vec<(String, usize)> {
     let content = fs::read_to_string(file_path).expect("Failed to read file");
     let parser = MarkdownParser::new(&content);
     let violations = rule.check(&parser, None);

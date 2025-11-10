@@ -72,7 +72,10 @@ impl Rule for MD024 {
                                 fix: None,
                             });
                         } else {
-                            sibling_headings.insert((current_heading_level, text.clone()), current_heading_line);
+                            sibling_headings.insert(
+                                (current_heading_level, text.clone()),
+                                current_heading_line,
+                            );
                         }
                     } else {
                         // Check globally
@@ -88,7 +91,8 @@ impl Rule for MD024 {
                                 fix: None,
                             });
                         } else {
-                            heading_texts.insert(text, (current_heading_line, current_heading_level));
+                            heading_texts
+                                .insert(text, (current_heading_line, current_heading_level));
                         }
                     }
 
