@@ -42,7 +42,6 @@ impl Rule for MD058 {
                     }
 
                     // Find end of table
-                    let table_start = i;
                     i += 2; // Skip header and separator
                     while i < lines.len() {
                         let current = lines[i].trim();

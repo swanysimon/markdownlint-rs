@@ -1,7 +1,7 @@
 use crate::lint::rule::Rule;
 use crate::markdown::MarkdownParser;
 use crate::types::Violation;
-use pulldown_cmark::{Event, HeadingLevel, Tag};
+use pulldown_cmark::{Event, Tag};
 use serde_json::Value;
 
 pub struct MD043;

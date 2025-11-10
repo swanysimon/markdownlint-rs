@@ -2,12 +2,12 @@ use crate::format::Formatter;
 use crate::lint::LintResult;
 
 pub struct JsonFormatter {
-    pretty: bool,
+    _pretty: bool,
 }
 
 impl JsonFormatter {
     pub fn new(pretty: bool) -> Self {
-        Self { pretty }
+        Self { _pretty: pretty }
     }
 }
 
