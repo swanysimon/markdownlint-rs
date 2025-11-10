@@ -1,0 +1,139 @@
+use crate::lint::rule::Rule;
+use crate::markdown::MarkdownParser;
+use crate::types::Violation;
+use pulldown_cmark::{Event, HeadingLevel, Tag};
+use serde_json::Value;
+
+pub struct MD041;
+
+impl Rule for MD041 {
+    fn name(&self) -> &str {
+        "MD041"
+    }
+
+    fn description(&self) -> &str {
+        "First line in file should be a top-level heading"
+    }
+
+    fn tags(&self) -> &[&str] {
+        &["headings"]
+    }
+
+    fn check(&self, parser: &MarkdownParser, config: Option<&Value>) -> Vec<Violation> {
+        let mut violations = Vec::new();
+        let level = config
+            .and_then(|c| c.get("level"))
+            .and_then(|v| v.as_u64())
+            .unwrap_or(1) as usize;
+
+        let expected_level = match level {
+            1 => HeadingLevel::H1,
+            2 => HeadingLevel::H2,
+            3 => HeadingLevel::H3,
+            4 => HeadingLevel::H4,
+            5 => HeadingLevel::H5,
+            6 => HeadingLevel::H6,
+            _ => HeadingLevel::H1,
+        };
+
+        // Check if first non-blank line is the expected heading level
+        let mut found_first_heading = false;
+        let mut first_heading_correct = false;
+
+        for (event, range) in parser.parse_with_offsets() {
+            // Skip blank/empty events at start
+            match event {
+                Event::Start(Tag::Heading(level, _, _)) if !found_first_heading => {
+                    found_first_heading = true;
+                    let heading_line = parser.offset_to_line(range.start);
+
+                    if level == expected_level {
+                        first_heading_correct = true;
+                    } else {
+                        violations.push(Violation {
+                            line: heading_line,
+                            column: Some(1),
+                            rule: self.name().to_string(),
+                            message: format!(
+                                "First line in file should be a level {} heading",
+                                match expected_level {
+                                    HeadingLevel::H1 => 1,
+                                    HeadingLevel::H2 => 2,
+                                    HeadingLevel::H3 => 3,
+                                    HeadingLevel::H4 => 4,
+                                    HeadingLevel::H5 => 5,
+                                    HeadingLevel::H6 => 6,
+                                }
+                            ),
+                            fix: None,
+                        });
+                    }
+                    break;
+                }
+                Event::Text(_) | Event::Code(_) | Event::Start(Tag::Paragraph) if !found_first_heading => {
+                    // Non-heading content found first
+                    violations.push(Violation {
+                        line: 1,
+                        column: Some(1),
+                        rule: self.name().to_string(),
+                        message: "First line in file should be a top-level heading".to_string(),
+                        fix: None,
+                    });
+                    break;
+                }
+                _ => {}
+            }
+        }
+
+        violations
+    }
+
+    fn fixable(&self) -> bool {
+        false
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_starts_with_h1() {
+        let content = "# Heading\n\nContent";
+        let parser = MarkdownParser::new(content);
+        let rule = MD041;
+        let violations = rule.check(&parser, None);
+
+        assert_eq!(violations.len(), 0);
+    }
+
+    #[test]
+    fn test_starts_with_text() {
+        let content = "Some text\n\n# Heading";
+        let parser = MarkdownParser::new(content);
+        let rule = MD041;
+        let violations = rule.check(&parser, None);
+
+        assert_eq!(violations.len(), 1);
+    }
+
+    #[test]
+    fn test_starts_with_h2() {
+        let content = "## Heading\n\nContent";
+        let parser = MarkdownParser::new(content);
+        let rule = MD041;
+        let violations = rule.check(&parser, None);
+
+        assert_eq!(violations.len(), 1); // Should be H1
+    }
+
+    #[test]
+    fn test_blank_lines_before_heading() {
+        let content = "\n\n# Heading\n\nContent";
+        let parser = MarkdownParser::new(content);
+        let rule = MD041;
+        let violations = rule.check(&parser, None);
+
+        assert_eq!(violations.len(), 0); // Blank lines are OK
+    }
+}
