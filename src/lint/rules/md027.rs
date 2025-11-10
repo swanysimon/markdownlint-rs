@@ -1,6 +1,6 @@
 use crate::lint::rule::Rule;
 use crate::markdown::MarkdownParser;
-use crate::types::Violation;
+use crate::types::{Fix, Violation};
 use serde_json::Value;
 
 pub struct MD027;
@@ -33,6 +33,15 @@ impl Rule for MD027 {
                 let space_count = after_gt.chars().take_while(|&c| c == ' ').count();
 
                 if space_count > 1 {
+                    // Replace multiple spaces with single space
+                    let leading_spaces = &line[..line.len() - trimmed.len()];
+                    let content = after_gt[space_count..].trim_start();
+                    let replacement = if content.is_empty() {
+                        format!("{}>", leading_spaces)
+                    } else {
+                        format!("{}> {}", leading_spaces, content)
+                    };
+
                     violations.push(Violation {
                         line: line_number,
                         column: Some(line.len() - trimmed.len() + 2),
@@ -41,7 +50,14 @@ impl Rule for MD027 {
                             "Multiple spaces after blockquote symbol ({} spaces)",
                             space_count
                         ),
-                        fix: None,
+                        fix: Some(Fix {
+                            line_start: line_number,
+                            line_end: line_number,
+                            column_start: None,
+                            column_end: None,
+                            replacement,
+                            description: "Replace multiple spaces with single space".to_string(),
+                        }),
                     });
                 }
             }
@@ -51,7 +67,7 @@ impl Rule for MD027 {
     }
 
     fn fixable(&self) -> bool {
-        false
+        true
     }
 }
 

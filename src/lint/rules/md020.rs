@@ -1,6 +1,6 @@
 use crate::lint::rule::Rule;
 use crate::markdown::MarkdownParser;
-use crate::types::Violation;
+use crate::types::{Fix, Violation};
 use serde_json::Value;
 
 pub struct MD020;
@@ -40,13 +40,25 @@ impl Rule for MD020 {
                     let pos_before_closing = chars.len() - closing_hashes - 1;
 
                     if chars[pos_before_closing] != ' ' {
+                        // Insert space before closing hashes
+                        let before_closing: String = chars[..=pos_before_closing].iter().collect();
+                        let closing: String = chars[(pos_before_closing + 1)..].iter().collect();
+                        let replacement = format!("{} {}", before_closing, closing);
+
                         violations.push(Violation {
                             line: line_number,
                             column: Some(1),
                             rule: self.name().to_string(),
                             message: "No space inside hashes on closed atx style heading"
                                 .to_string(),
-                            fix: None,
+                            fix: Some(Fix {
+                                line_start: line_number,
+                                line_end: line_number,
+                                column_start: None,
+                                column_end: None,
+                                replacement,
+                                description: "Add space before closing hashes".to_string(),
+                            }),
                         });
                     }
                 }
@@ -57,7 +69,7 @@ impl Rule for MD020 {
     }
 
     fn fixable(&self) -> bool {
-        false
+        true
     }
 }
 

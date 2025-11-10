@@ -1,6 +1,6 @@
 use crate::lint::rule::Rule;
 use crate::markdown::MarkdownParser;
-use crate::types::Violation;
+use crate::types::{Fix, Violation};
 use pulldown_cmark::{CodeBlockKind, Event, Tag};
 use serde_json::Value;
 
@@ -49,6 +49,7 @@ impl Rule for MD031 {
             if line_idx > 0 {
                 let prev_line = lines[line_idx - 1].trim();
                 if !prev_line.is_empty() {
+                    // Insert blank line before code block
                     violations.push(Violation {
                         line: start_line,
                         column: Some(1),
@@ -56,7 +57,14 @@ impl Rule for MD031 {
                         message:
                             "Fenced code blocks should be surrounded by blank lines (missing before)"
                                 .to_string(),
-                        fix: None,
+                        fix: Some(Fix {
+                            line_start: line_idx,
+                            line_end: line_idx,
+                            column_start: None,
+                            column_end: None,
+                            replacement: format!("\n{}", lines[line_idx]),
+                            description: "Add blank line before code block".to_string(),
+                        }),
                     });
                 }
             }
@@ -69,6 +77,7 @@ impl Rule for MD031 {
             if line_idx + 1 < lines.len() {
                 let next_line = lines[line_idx + 1].trim();
                 if !next_line.is_empty() {
+                    // Insert blank line after code block
                     violations.push(Violation {
                         line: end_line,
                         column: Some(1),
@@ -76,7 +85,14 @@ impl Rule for MD031 {
                         message:
                             "Fenced code blocks should be surrounded by blank lines (missing after)"
                                 .to_string(),
-                        fix: None,
+                        fix: Some(Fix {
+                            line_start: line_idx + 1,
+                            line_end: line_idx + 1,
+                            column_start: None,
+                            column_end: None,
+                            replacement: format!("{}\n", lines[line_idx]),
+                            description: "Add blank line after code block".to_string(),
+                        }),
                     });
                 }
             }
@@ -86,7 +102,7 @@ impl Rule for MD031 {
     }
 
     fn fixable(&self) -> bool {
-        false
+        true
     }
 }
 

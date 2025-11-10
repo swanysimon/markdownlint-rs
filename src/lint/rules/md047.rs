@@ -1,6 +1,6 @@
 use crate::lint::rule::Rule;
 use crate::markdown::MarkdownParser;
-use crate::types::Violation;
+use crate::types::{Fix, Violation};
 use serde_json::Value;
 
 pub struct MD047;
@@ -26,33 +26,66 @@ impl Rule for MD047 {
             return violations;
         }
 
+        let lines = parser.lines();
+
         // Check if file ends with a newline
         if !content.ends_with('\n') {
-            let lines = parser.lines();
+            // Missing newline at end
+            let last_line = lines.last().unwrap_or(&"");
             violations.push(Violation {
                 line: lines.len(),
                 column: Some(1),
                 rule: self.name().to_string(),
                 message: "Files should end with a single newline character".to_string(),
-                fix: None,
+                fix: Some(Fix {
+                    line_start: lines.len(),
+                    line_end: lines.len(),
+                    column_start: None,
+                    column_end: None,
+                    replacement: format!("{}\n", last_line),
+                    description: "Add newline at end of file".to_string(),
+                }),
             });
         } else if content.ends_with("\n\n") {
-            // Multiple trailing newlines
-            let lines = parser.lines();
-            violations.push(Violation {
-                line: lines.len(),
-                column: Some(1),
-                rule: self.name().to_string(),
-                message: "Files should end with a single newline character".to_string(),
-                fix: None,
-            });
+            // Multiple trailing newlines - count them
+            let trailing_newlines = content.chars().rev().take_while(|&c| c == '\n').count();
+
+            if trailing_newlines > 1 {
+                // Remove all but one newline
+                // The last "line" in lines() will be empty string(s) for trailing newlines
+                let last_content_line_idx = lines.len().saturating_sub(trailing_newlines);
+                let last_content_line = if last_content_line_idx > 0 {
+                    lines.get(last_content_line_idx - 1).unwrap_or(&"")
+                } else {
+                    ""
+                };
+
+                violations.push(Violation {
+                    line: lines.len(),
+                    column: Some(1),
+                    rule: self.name().to_string(),
+                    message: "Files should end with a single newline character".to_string(),
+                    fix: Some(Fix {
+                        line_start: last_content_line_idx.max(1),
+                        line_end: lines.len(),
+                        column_start: None,
+                        column_end: None,
+                        replacement: if last_content_line_idx > 0 {
+                            format!("{}\n", last_content_line)
+                        } else {
+                            "\n".to_string()
+                        },
+                        description: "Remove extra newlines at end of file".to_string(),
+                    }),
+                });
+            }
         }
 
         violations
     }
 
     fn fixable(&self) -> bool {
-        false
+        true
     }
 }
 
