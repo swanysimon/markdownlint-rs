@@ -31,7 +31,7 @@ impl Rule for MD049 {
             let line_number = line_num + 1;
 
             // Look for emphasis patterns: *text* or _text_ (not ** or __)
-            let mut chars: Vec<char> = line.chars().collect();
+            let chars: Vec<char> = line.chars().collect();
             let mut i = 0;
 
             while i < chars.len() {
@@ -45,7 +45,6 @@ impl Rule for MD049 {
 
                     if !is_strong {
                         // Find closing marker
-                        let mut found_close = false;
                         for j in (i + 1)..chars.len() {
                             if chars[j] == ch {
                                 // Make sure closing is also not strong
@@ -53,7 +52,6 @@ impl Rule for MD049 {
                                     || (j > 0 && chars[j - 1] == ch);
 
                                 if !close_is_strong {
-                                    found_close = true;
 
                                     // Track style
                                     if style == "consistent" {

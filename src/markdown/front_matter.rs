@@ -65,6 +65,7 @@ fn detect_toml_front_matter(lines: &[&str]) -> Option<FrontMatter> {
     None
 }
 
+#[allow(dead_code)]
 pub fn strip_front_matter(content: &str) -> String {
     if let Some(front_matter) = detect_front_matter(content) {
         let lines: Vec<&str> = content.lines().collect();

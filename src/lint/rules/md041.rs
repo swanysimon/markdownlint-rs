@@ -37,19 +37,15 @@ impl Rule for MD041 {
         };
 
         // Check if first non-blank line is the expected heading level
-        let mut found_first_heading = false;
-        let mut first_heading_correct = false;
+        let found_first_heading = false;
 
         for (event, range) in parser.parse_with_offsets() {
             // Skip blank/empty events at start
             match event {
                 Event::Start(Tag::Heading(level, _, _)) if !found_first_heading => {
-                    found_first_heading = true;
                     let heading_line = parser.offset_to_line(range.start);
 
-                    if level == expected_level {
-                        first_heading_correct = true;
-                    } else {
+                    if level != expected_level {
                         violations.push(Violation {
                             line: heading_line,
                             column: Some(1),
