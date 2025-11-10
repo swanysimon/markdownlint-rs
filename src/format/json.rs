@@ -1,7 +1,6 @@
 use crate::format::Formatter;
 use crate::lint::LintResult;
 use serde::Serialize;
-use std::path::PathBuf;
 
 pub struct JsonFormatter {
     pretty: bool,
