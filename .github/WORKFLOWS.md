@@ -6,6 +6,19 @@ This document describes the GitHub Actions workflows used in this project.
 
 We use GitHub Actions for continuous integration, deployment, and automation. All workflows are defined in `.github/workflows/`.
 
+## CI Strategy
+
+Our CI pipeline is optimized for fast feedback:
+
+1. **Fast checks first** (test, clippy, fmt) - Run in parallel on Linux
+2. **Slow checks second** (build, compatibility) - Only run if fast checks pass
+3. **Platform testing strategy**:
+   - Unit tests run only on Linux (tests should pass regardless of platform)
+   - Cross-compilation verified on all target platforms (Linux x86/ARM, macOS x86/ARM, Windows x86)
+   - This provides fast feedback while ensuring platform compatibility
+
+This approach gives developers quick feedback on the most common issues while still validating that code compiles and works across all supported platforms.
+
 ## Workflows
 
 ### 1. CI (`ci.yml`)
@@ -17,10 +30,10 @@ Comprehensive continuous integration pipeline that ensures code quality. This wo
 #### Jobs:
 
 **Test Suite** (`test`)
-- Runs on: Ubuntu, macOS, Windows
-- Rust versions: Stable, Beta
+- Runs on: Ubuntu with Rust stable
 - Executes: Unit tests, integration tests, doc tests
 - Uses caching for faster builds
+- Note: Tests run only on Linux for speed; cross-platform compilation verified in build job
 
 **Clippy** (`clippy`)
 - Runs: `cargo clippy --all-targets --all-features -- -D warnings`
@@ -33,17 +46,21 @@ Comprehensive continuous integration pipeline that ensures code quality. This wo
 - Fails if code is not formatted
 
 **Build** (`build`)
-- Cross-platform builds for:
-  - Linux x86_64
-  - macOS x86_64
-  - macOS aarch64 (Apple Silicon)
-  - Windows x86_64
-- Verifies binary execution
+- Cross-platform compilation verification for:
+  - Linux x86_64 (Intel/AMD)
+  - Linux aarch64 (ARM64)
+  - macOS x86_64 (Intel)
+  - macOS aarch64 (Apple Silicon ARM64)
+  - Windows x86_64 (Intel/AMD)
+- Uses `cross` for ARM Linux cross-compilation
+- Verifies binary execution on native platforms
+- Runs only after fast checks (test, clippy, fmt) pass
 
 **Compatibility Tests** (`compatibility`)
 - Compares output with markdownlint-cli2
 - Uses Docker for reference implementation
 - Ensures behavioral compatibility
+- Runs only after fast checks (test, clippy, fmt) pass
 
 **Security Audit** (`security`)
 - Checks for known vulnerabilities
@@ -93,9 +110,9 @@ Automated release process that ensures all CI checks pass before building and pu
 
 **Build Release Binaries** (`build-release`)
 - Builds optimized binaries for:
-  - **Linux**: x86_64 (glibc), x86_64 (musl), aarch64
-  - **macOS**: x86_64, aarch64 (Apple Silicon)
-  - **Windows**: x86_64
+  - **Linux**: x86_64 (glibc), x86_64-musl (static), aarch64 (ARM64)
+  - **macOS**: x86_64 (Intel), aarch64 (Apple Silicon ARM64)
+  - **Windows**: x86_64 (Intel/AMD)
 - Strips debug symbols for smaller binaries
 - Generates SHA256 checksums for each binary
 - Creates tarballs (Linux/macOS) and zips (Windows)
