@@ -11,13 +11,14 @@ We use GitHub Actions for continuous integration, deployment, and automation. Al
 Our CI pipeline is optimized for fast feedback:
 
 1. **Fast checks first** (test, clippy, fmt) - Run in parallel on Linux
-2. **Slow checks second** (build, compatibility) - Only run if fast checks pass
-3. **Platform testing strategy**:
+2. **Dogfooding** (dogfood) - Verify our own docs comply with linting rules
+3. **Slow checks second** (build, compatibility) - Only run if fast checks pass
+4. **Platform testing strategy**:
    - Unit tests run only on Linux (tests should pass regardless of platform)
    - Cross-compilation verified on all target platforms (Linux x86/ARM, macOS x86/ARM, Windows x86)
    - This provides fast feedback while ensuring platform compatibility
 
-This approach gives developers quick feedback on the most common issues while still validating that code compiles and works across all supported platforms.
+This approach gives developers quick feedback on the most common issues while still validating that code compiles and works across all supported platforms. We also dogfood our own tool on project documentation to ensure quality and demonstrate confidence.
 
 ## Workflows
 
@@ -44,6 +45,12 @@ Comprehensive continuous integration pipeline that ensures code quality. This wo
 - Runs: `cargo fmt --all -- --check`
 - Ensures consistent code formatting
 - Fails if code is not formatted
+
+**Dogfood** (`dogfood`)
+- Runs markdownlint-rs on its own documentation
+- Verifies README.md, CONTRIBUTING.md, CLAUDE.md, IMPROVEMENTS.md, WORKFLOWS.md comply with rules
+- Demonstrates confidence in the tool's quality
+- Runs only after fast checks (test, clippy, fmt) pass
 
 **Build** (`build`)
 - Cross-platform compilation verification for:
