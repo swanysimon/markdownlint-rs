@@ -63,8 +63,8 @@ impl Rule for MD051 {
                 }
                 Event::End(Tag::Link(_, _, _)) if in_link => {
                     // Check if URL is a fragment-only link
-                    if link_url.starts_with('#') {
-                        let fragment = &link_url[1..]; // Remove the '#'
+                    if let Some(fragment) = link_url.strip_prefix('#') {
+                        // Remove the '#'
                         let fragment_id = fragment.to_string();
 
                         if !heading_ids.contains_key(&fragment_id) {

@@ -64,9 +64,8 @@ impl Formatter for JsonFormatter {
         };
 
         if self.pretty {
-            serde_json::to_string_pretty(&json_output).unwrap_or_else(|e| {
-                format!("{{\"error\": \"Failed to serialize JSON: {}\"}}", e)
-            })
+            serde_json::to_string_pretty(&json_output)
+                .unwrap_or_else(|e| format!("{{\"error\": \"Failed to serialize JSON: {}\"}}", e))
         } else {
             serde_json::to_string(&json_output)
                 .unwrap_or_else(|e| format!("{{\"error\": \"Failed to serialize JSON: {}\"}}", e))
@@ -165,4 +164,3 @@ mod tests {
         assert!(output.contains("\"fixable\":true"));
     }
 }
-

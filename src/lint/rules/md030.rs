@@ -61,7 +61,8 @@ impl Rule for MD030 {
                         let marker = trimmed.chars().next().unwrap();
                         let content = after_marker[space_count..].trim_start();
                         let spaces = " ".repeat(expected);
-                        let replacement = format!("{}{}{}{}", leading_spaces, marker, spaces, content);
+                        let replacement =
+                            format!("{}{}{}{}", leading_spaces, marker, spaces, content);
 
                         violations.push(Violation {
                             line: line_number,
@@ -103,7 +104,8 @@ impl Rule for MD030 {
                             let marker = &trimmed[..=dot_pos];
                             let content = after_dot[space_count..].trim_start();
                             let spaces = " ".repeat(expected);
-                            let replacement = format!("{}{}{}{}", leading_spaces, marker, spaces, content);
+                            let replacement =
+                                format!("{}{}{}{}", leading_spaces, marker, spaces, content);
 
                             violations.push(Violation {
                                 line: line_number,

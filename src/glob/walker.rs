@@ -27,13 +27,10 @@ impl FileWalker {
 
         for entry in builder.build() {
             let entry = entry.map_err(|e| {
-                MarkdownlintError::Io(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!("Walk error: {}", e),
-                ))
+                MarkdownlintError::Io(std::io::Error::other(format!("Walk error: {}", e)))
             })?;
 
-            if entry.file_type().map_or(false, |ft| ft.is_file()) {
+            if entry.file_type().is_some_and(|ft| ft.is_file()) {
                 let path = entry.path();
                 if is_markdown_file(path) {
                     files.push(path.to_path_buf());
@@ -53,7 +50,7 @@ impl FileWalker {
             return self.find_markdown_files(root);
         }
 
-        let root = root.canonicalize().map_err(|e| MarkdownlintError::Io(e))?;
+        let root = root.canonicalize().map_err(MarkdownlintError::Io)?;
 
         let mut builder = WalkBuilder::new(&root);
         builder.git_ignore(self.respect_gitignore);
@@ -65,13 +62,10 @@ impl FileWalker {
 
         for entry in builder.build() {
             let entry = entry.map_err(|e| {
-                MarkdownlintError::Io(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!("Walk error: {}", e),
-                ))
+                MarkdownlintError::Io(std::io::Error::other(format!("Walk error: {}", e)))
             })?;
 
-            if entry.file_type().map_or(false, |ft| ft.is_file()) {
+            if entry.file_type().is_some_and(|ft| ft.is_file()) {
                 let path = entry.path();
 
                 let relative_path = path.strip_prefix(&root).unwrap_or(path);

@@ -67,7 +67,11 @@ impl Rule for MD014 {
                                     let after_dollar_trimmed = after_dollar.trim_start();
                                     // Preserve leading whitespace before $
                                     let leading_spaces = line.len() - trimmed.len();
-                                    let replacement = format!("{}{}", " ".repeat(leading_spaces), after_dollar_trimmed);
+                                    let replacement = format!(
+                                        "{}{}",
+                                        " ".repeat(leading_spaces),
+                                        after_dollar_trimmed
+                                    );
 
                                     violations.push(Violation {
                                         line: current_line,

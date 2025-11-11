@@ -3,6 +3,12 @@ use crate::lint::LintResult;
 
 pub struct JunitFormatter;
 
+impl Default for JunitFormatter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl JunitFormatter {
     pub fn new() -> Self {
         Self

@@ -57,4 +57,3 @@ impl LintEngine {
         self.lint_content(&content)
     }
 }
-

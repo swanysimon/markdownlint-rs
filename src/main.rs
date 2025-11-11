@@ -30,7 +30,11 @@ struct Cli {
     #[arg(long, help = "Ignore globs from configuration")]
     no_globs: bool,
 
-    #[arg(long, help = "Output format: default or json", default_value = "default")]
+    #[arg(
+        long,
+        help = "Output format: default or json",
+        default_value = "default"
+    )]
     format: String,
 
     #[arg(long, help = "Disable color output")]

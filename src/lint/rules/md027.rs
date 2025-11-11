@@ -26,9 +26,7 @@ impl Rule for MD027 {
             let trimmed = line.trim_start();
 
             // Check if line starts with blockquote marker
-            if trimmed.starts_with('>') {
-                let after_gt = &trimmed[1..];
-
+            if let Some(after_gt) = trimmed.strip_prefix('>') {
                 // Count spaces after the >
                 let space_count = after_gt.chars().take_while(|&c| c == ' ').count();
 

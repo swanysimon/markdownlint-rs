@@ -32,9 +32,8 @@ impl Rule for MD011 {
                     line: line_num + 1,
                     column: Some(m.start() + 1),
                     rule: self.name().to_string(),
-                    message: format!(
-                        "Reversed link syntax (found '(text)[url]', should be '[text](url)')"
-                    ),
+                    message: "Reversed link syntax (found '(text)[url]', should be '[text](url)')"
+                        .to_string(),
                     fix: None,
                 });
             }

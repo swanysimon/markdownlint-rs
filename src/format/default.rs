@@ -189,4 +189,3 @@ mod tests {
         assert!(output.contains("\x1b["));
     }
 }
-

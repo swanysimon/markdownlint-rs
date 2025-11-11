@@ -3,6 +3,12 @@ use crate::lint::LintResult;
 
 pub struct SarifFormatter;
 
+impl Default for SarifFormatter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SarifFormatter {
     pub fn new() -> Self {
         Self

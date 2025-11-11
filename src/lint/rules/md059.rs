@@ -23,7 +23,7 @@ impl Rule for MD059 {
         let mut violations = Vec::new();
 
         // List of non-descriptive link texts
-        let non_descriptive = vec![
+        let non_descriptive = [
             "click here",
             "here",
             "link",
