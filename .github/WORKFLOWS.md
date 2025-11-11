@@ -45,11 +45,6 @@ Comprehensive continuous integration pipeline that ensures code quality. This wo
 - Uses Docker for reference implementation
 - Ensures behavioral compatibility
 
-**Code Coverage** (`coverage`)
-- Uses `cargo-tarpaulin`
-- Uploads to Codecov
-- Tracks test coverage over time
-
 **Security Audit** (`security`)
 - Checks for known vulnerabilities
 - Uses `cargo-audit` via rustsec
@@ -220,7 +215,6 @@ Configure these secrets in repository settings:
 
 - `GITHUB_TOKEN` - Automatically provided by GitHub
 - `CARGO_REGISTRY_TOKEN` - For publishing to crates.io (optional)
-- `CODECOV_TOKEN` - For code coverage reporting (optional)
 
 ## Badges
 
@@ -229,7 +223,6 @@ Add these badges to your README:
 ```markdown
 [![CI](https://github.com/YOUR_USERNAME/markdownlint-rs/workflows/CI/badge.svg)](https://github.com/YOUR_USERNAME/markdownlint-rs/actions/workflows/ci.yml)
 [![Release](https://github.com/YOUR_USERNAME/markdownlint-rs/workflows/Tag%20and%20Release/badge.svg)](https://github.com/YOUR_USERNAME/markdownlint-rs/actions/workflows/tag.yml)
-[![codecov](https://codecov.io/gh/YOUR_USERNAME/markdownlint-rs/branch/main/graph/badge.svg)](https://codecov.io/gh/YOUR_USERNAME/markdownlint-rs)
 [![Crates.io](https://img.shields.io/crates/v/markdownlint-rs.svg)](https://crates.io/crates/markdownlint-rs)
 ```
 
