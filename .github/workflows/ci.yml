@@ -165,47 +165,6 @@ jobs:
       - name: Run compatibility tests
         run: cargo test --test compatibility
 
-  coverage:
-    name: Code Coverage
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install cargo-tarpaulin
-        run: cargo install cargo-tarpaulin
-
-      - name: Generate coverage
-        run: |
-          cargo tarpaulin --out xml --all-features --print-summary
-          cargo tarpaulin --out stdout --all-features | tee coverage-summary.txt
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
-
-      - name: Comment coverage on PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const coverage = fs.readFileSync('coverage-summary.txt', 'utf8');
-            const body = `## Code Coverage Report\n\n\`\`\`\n${coverage}\n\`\`\``;
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: body
-            });
-
   security:
     name: Security Audit
     runs-on: ubuntu-latest
