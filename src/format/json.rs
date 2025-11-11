@@ -78,6 +78,7 @@ impl Formatter for JsonFormatter {
 mod tests {
     use super::*;
     use crate::types::Violation;
+    use std::path::PathBuf;
 
     #[test]
     fn test_empty_result() {

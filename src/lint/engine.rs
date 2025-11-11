@@ -13,7 +13,7 @@ pub struct LintEngine {
 
 impl LintEngine {
     pub fn new(config: Config) -> Self {
-        let registry = RuleRegistry::new();
+        let registry = crate::lint::rules::create_default_registry();
         Self { config, registry }
     }
 
