@@ -127,7 +127,7 @@ mod tests {
         let rule = MD031;
         let violations = rule.check(&parser, None);
 
-        assert!(violations.len() > 0);
+        assert!(!violations.is_empty());
         assert!(violations.iter().any(|v| v.message.contains("before")));
     }
 
@@ -138,7 +138,7 @@ mod tests {
         let rule = MD031;
         let violations = rule.check(&parser, None);
 
-        assert!(violations.len() > 0);
+        assert!(!violations.is_empty());
         assert!(violations.iter().any(|v| v.message.contains("after")));
     }
 

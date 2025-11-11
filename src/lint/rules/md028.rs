@@ -35,12 +35,12 @@ impl Rule for MD028 {
             } else if is_blank && in_blockquote {
                 // Look ahead to find if blockquote continues (skip multiple blank lines)
                 let mut found_continuation = false;
-                for future_idx in (line_num + 1)..lines.len() {
-                    let future_line = lines[future_idx].trim_start();
-                    if future_line.starts_with('>') {
+                for future_line in lines.iter().skip(line_num + 1) {
+                    let trimmed_start = future_line.trim_start();
+                    if trimmed_start.starts_with('>') {
                         found_continuation = true;
                         break;
-                    } else if !lines[future_idx].trim().is_empty() {
+                    } else if !future_line.trim().is_empty() {
                         // Non-blank, non-blockquote line means blockquote ended
                         break;
                     }

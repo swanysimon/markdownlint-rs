@@ -130,7 +130,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
 
         std::process::Command::new("git")
-            .args(&["init"])
+            .args(["init"])
             .current_dir(temp_dir.path())
             .output()
             .unwrap();

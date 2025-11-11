@@ -44,17 +44,10 @@ impl Rule for MD033 {
 
                 // Extract tag name from HTML
                 if let Some(tag_name) = extract_tag_name(&html_str) {
-                    if !allowed_elements.is_empty()
-                        && !allowed_elements.contains(&tag_name.to_lowercase())
-                    {
-                        violations.push(Violation {
-                            line,
-                            column: Some(1),
-                            rule: self.name().to_string(),
-                            message: format!("Inline HTML element: <{}>", tag_name),
-                            fix: None,
-                        });
-                    } else if allowed_elements.is_empty() {
+                    let is_disallowed = allowed_elements.is_empty()
+                        || !allowed_elements.contains(&tag_name.to_lowercase());
+
+                    if is_disallowed {
                         violations.push(Violation {
                             line,
                             column: Some(1),
@@ -122,7 +115,7 @@ mod tests {
         let violations = rule.check(&parser, Some(&config));
 
         // Only <div> should be flagged, <br> is allowed
-        assert!(violations.len() >= 1);
+        assert!(!violations.is_empty());
         assert!(violations.iter().any(|v| v.message.contains("<div>")));
     }
 
@@ -133,6 +126,6 @@ mod tests {
         let rule = MD033;
         let violations = rule.check(&parser, None);
 
-        assert!(violations.len() >= 1);
+        assert!(!violations.is_empty());
     }
 }

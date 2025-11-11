@@ -79,8 +79,10 @@ mod tests {
     #[test]
     fn test_merge_configs_fix_flag() {
         let base = Config::default();
-        let mut override_cfg = Config::default();
-        override_cfg.fix = true;
+        let override_cfg = Config {
+            fix: true,
+            ..Default::default()
+        };
 
         let merged = merge_configs(base, override_cfg);
         assert!(merged.fix);
@@ -88,11 +90,15 @@ mod tests {
 
     #[test]
     fn test_merge_configs_globs() {
-        let mut base = Config::default();
-        base.globs = vec!["*.md".to_string()];
+        let base = Config {
+            globs: vec!["*.md".to_string()],
+            ..Default::default()
+        };
 
-        let mut override_cfg = Config::default();
-        override_cfg.globs = vec!["**/*.markdown".to_string()];
+        let override_cfg = Config {
+            globs: vec!["**/*.markdown".to_string()],
+            ..Default::default()
+        };
 
         let merged = merge_configs(base, override_cfg);
         assert_eq!(merged.globs.len(), 2);
@@ -117,15 +123,21 @@ mod tests {
 
     #[test]
     fn test_merge_many_configs() {
-        let mut config1 = Config::default();
-        config1.globs = vec!["*.md".to_string()];
+        let config1 = Config {
+            globs: vec!["*.md".to_string()],
+            ..Default::default()
+        };
 
-        let mut config2 = Config::default();
-        config2.globs = vec!["*.markdown".to_string()];
-        config2.fix = true;
+        let config2 = Config {
+            globs: vec!["*.markdown".to_string()],
+            fix: true,
+            ..Default::default()
+        };
 
-        let mut config3 = Config::default();
-        config3.no_banner = true;
+        let config3 = Config {
+            no_banner: true,
+            ..Default::default()
+        };
 
         let merged = merge_many_configs(vec![config1, config2, config3]);
         assert_eq!(merged.globs.len(), 2);
