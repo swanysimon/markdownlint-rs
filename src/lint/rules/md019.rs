@@ -57,7 +57,8 @@ impl Rule for MD019 {
                                 column_start: None,
                                 column_end: None,
                                 replacement,
-                                description: "Replace multiple spaces with single space".to_string(),
+                                description: "Replace multiple spaces with single space"
+                                    .to_string(),
                             }),
                         });
                     }

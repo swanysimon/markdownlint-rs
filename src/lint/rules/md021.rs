@@ -28,47 +28,46 @@ impl Rule for MD021 {
             // Check if this is a closed ATX heading
             if trimmed.starts_with('#') && trimmed.ends_with('#') {
                 let parts: Vec<&str> = trimmed.split_whitespace().collect();
-                if parts.len() >= 2 {
-                    if parts.last().unwrap().chars().all(|c| c == '#') {
-                        let closing_hashes = parts.last().unwrap();
+                if parts.len() >= 2 && parts.last().unwrap().chars().all(|c| c == '#') {
+                    let closing_hashes = parts.last().unwrap();
 
-                        // Find position of closing hashes
-                        if let Some(pos) = trimmed.rfind(closing_hashes) {
-                            // Count spaces before closing hashes
-                            let mut space_count = 0;
-                            let mut check_pos = pos;
-                            while check_pos > 0 {
-                                check_pos -= 1;
-                                if trimmed.chars().nth(check_pos) == Some(' ') {
-                                    space_count += 1;
-                                } else {
-                                    break;
-                                }
+                    // Find position of closing hashes
+                    if let Some(pos) = trimmed.rfind(closing_hashes) {
+                        // Count spaces before closing hashes
+                        let mut space_count = 0;
+                        let mut check_pos = pos;
+                        while check_pos > 0 {
+                            check_pos -= 1;
+                            if trimmed.chars().nth(check_pos) == Some(' ') {
+                                space_count += 1;
+                            } else {
+                                break;
                             }
+                        }
 
-                            if space_count > 1 {
-                                // Replace multiple spaces with single space
-                                let before_spaces = &trimmed[..check_pos + 1];
-                                let after_spaces = &trimmed[pos..];
-                                let replacement = format!("{} {}", before_spaces, after_spaces);
+                        if space_count > 1 {
+                            // Replace multiple spaces with single space
+                            let before_spaces = &trimmed[..check_pos + 1];
+                            let after_spaces = &trimmed[pos..];
+                            let replacement = format!("{} {}", before_spaces, after_spaces);
 
-                                violations.push(Violation {
-                                    line: line_number,
-                                    column: Some(1),
-                                    rule: self.name().to_string(),
-                                    message:
-                                        "Multiple spaces inside hashes on closed atx style heading"
-                                            .to_string(),
-                                    fix: Some(Fix {
-                                        line_start: line_number,
-                                        line_end: line_number,
-                                        column_start: None,
-                                        column_end: None,
-                                        replacement,
-                                        description: "Replace multiple spaces with single space".to_string(),
-                                    }),
-                                });
-                            }
+                            violations.push(Violation {
+                                line: line_number,
+                                column: Some(1),
+                                rule: self.name().to_string(),
+                                message:
+                                    "Multiple spaces inside hashes on closed atx style heading"
+                                        .to_string(),
+                                fix: Some(Fix {
+                                    line_start: line_number,
+                                    line_end: line_number,
+                                    column_start: None,
+                                    column_end: None,
+                                    replacement,
+                                    description: "Replace multiple spaces with single space"
+                                        .to_string(),
+                                }),
+                            });
                         }
                     }
                 }

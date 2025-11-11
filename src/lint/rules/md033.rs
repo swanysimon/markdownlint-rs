@@ -80,11 +80,9 @@ fn extract_tag_name(html: &str) -> Option<String> {
     if trimmed.starts_with('<') {
         // Handle opening tags, closing tags, and self-closing tags
         let inner = trimmed.trim_start_matches('<').trim_start_matches('/');
-        if let Some(end_pos) = inner.find(|c: char| c.is_whitespace() || c == '>' || c == '/') {
-            Some(inner[..end_pos].to_string())
-        } else {
-            None
-        }
+        inner
+            .find(|c: char| c.is_whitespace() || c == '>' || c == '/')
+            .map(|end_pos| inner[..end_pos].to_string())
     } else {
         None
     }
