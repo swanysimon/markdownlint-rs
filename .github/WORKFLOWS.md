@@ -10,9 +10,9 @@ We use GitHub Actions for continuous integration, deployment, and automation. Al
 
 ### 1. CI (`ci.yml`)
 
-**Triggers**: Push to `main`, Pull Requests to `main`
+**Triggers**: Push to `main`, Pull Requests to `main`, Called by other workflows
 
-Comprehensive continuous integration pipeline that ensures code quality:
+Comprehensive continuous integration pipeline that ensures code quality. This workflow is also reusable and can be called by other workflows (like `tag.yml`):
 
 #### Jobs:
 
@@ -54,18 +54,47 @@ Comprehensive continuous integration pipeline that ensures code quality:
 - Checks for known vulnerabilities
 - Uses `cargo-audit` via rustsec
 
-### 2. Release (`release.yml`)
+### 2. Tag and Release (`tag.yml`)
 
-**Triggers**: Tags matching `v*.*.*` (e.g., `v0.1.0`), Manual dispatch
+**Triggers**: Tags matching `v*.*.*` (e.g., `v0.1.0`)
 
-Automated release process for building and publishing binaries:
+Automated release process that ensures all CI checks pass before building and publishing binaries:
+
+#### Release Process Flow:
+
+1. **Run CI Checks** - Calls the `ci.yml` workflow to run all quality checks
+2. **Create Release** - Only proceeds if CI passes
+3. **Build Binaries** - Build for all platforms in parallel
+4. **Publish to crates.io** - Optional final step
+
+#### Safety Features:
+
+**CI Enforcement**
+- All tests, clippy, and formatting checks must pass before release
+- Ensures only quality code gets released
+
+**Concurrency Control**
+- Uses commit SHA for concurrency group
+- Prevents multiple tags on same commit from creating duplicate releases
+- Second tag waits for first to complete
+
+**Idempotent Release Creation**
+- Checks if release already exists before creating
+- If release exists, reuses it (useful for multiple tags)
+- Prevents duplicate release errors
 
 #### Jobs:
 
+**Run CI Checks** (`ci`)
+- Calls `ci.yml` workflow
+- All CI jobs must pass before proceeding
+- Blocks release if any quality checks fail
+
 **Create Release** (`create-release`)
-- Creates GitHub release
-- Extracts version from tag
+- Checks if release already exists (idempotent)
+- Creates GitHub release with checksums instructions
 - Provides upload URL for artifacts
+- Skips if release already exists for this commit
 
 **Build Release Binaries** (`build-release`)
 - Builds optimized binaries for:
@@ -78,6 +107,7 @@ Automated release process for building and publishing binaries:
 - Uploads all artifacts to GitHub release
 
 **Publish to crates.io** (`publish-crates-io`)
+- Only runs if this is a new release (not a duplicate tag)
 - Publishes to crates.io after successful builds
 - Requires `CARGO_REGISTRY_TOKEN` secret
 
@@ -104,7 +134,55 @@ markdownlint-rs-windows-x86_64.exe.zip
 markdownlint-rs-windows-x86_64.exe.zip.sha256
 ```
 
-### 3. Dependency Updates (`dependencies.yml`)
+#### Creating a Release
+
+To create a new release:
+
+```bash
+# Create and push a version tag
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The workflow will automatically:
+1. Run all CI checks
+2. Create a GitHub release (if CI passes)
+3. Build binaries for all platforms
+4. Upload binaries with checksums
+5. Publish to crates.io
+
+#### Multiple Tags on Same Commit
+
+If you push multiple tags to the same commit (e.g., `v1.0.0` and `v1.0.0-beta`):
+- First tag triggers a full release process
+- Second tag waits for first to complete (concurrency control)
+- Second tag reuses the existing release, only uploads additional artifacts
+- crates.io publish only happens once
+
+### 3. Manual Release Testing (`release.yml`)
+
+**Triggers**: Manual dispatch only
+
+Test release workflow for debugging without creating a real release:
+
+#### Purpose
+
+Use this workflow ONLY for:
+- Testing the release build process
+- Debugging release issues
+- Verifying cross-compilation works
+
+**DO NOT** use this for actual releases - use version tags instead.
+
+#### Jobs
+
+Same as `tag.yml` but:
+- Creates draft/prerelease (not a real release)
+- Uses `-test` suffix on tags
+- Requires manual version input
+- Marked clearly as test releases
+
+### 4. Dependency Updates (`dependencies.yml`)
 
 **Triggers**: Weekly (Monday 9am UTC), Manual dispatch
 
@@ -122,7 +200,7 @@ Automated dependency maintenance:
 - Weekly security vulnerability check
 - Reports known issues in dependencies
 
-### 4. Benchmarks (`benchmarks.yml`)
+### 5. Benchmarks (`benchmarks.yml`)
 
 **Triggers**: Push to `main`, Pull Requests
 
@@ -150,7 +228,7 @@ Add these badges to your README:
 
 ```markdown
 [![CI](https://github.com/YOUR_USERNAME/markdownlint-rs/workflows/CI/badge.svg)](https://github.com/YOUR_USERNAME/markdownlint-rs/actions/workflows/ci.yml)
-[![Release](https://github.com/YOUR_USERNAME/markdownlint-rs/workflows/Release/badge.svg)](https://github.com/YOUR_USERNAME/markdownlint-rs/actions/workflows/release.yml)
+[![Release](https://github.com/YOUR_USERNAME/markdownlint-rs/workflows/Tag%20and%20Release/badge.svg)](https://github.com/YOUR_USERNAME/markdownlint-rs/actions/workflows/tag.yml)
 [![codecov](https://codecov.io/gh/YOUR_USERNAME/markdownlint-rs/branch/main/graph/badge.svg)](https://codecov.io/gh/YOUR_USERNAME/markdownlint-rs)
 [![Crates.io](https://img.shields.io/crates/v/markdownlint-rs.svg)](https://crates.io/crates/markdownlint-rs)
 ```
