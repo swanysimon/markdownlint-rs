@@ -112,7 +112,7 @@ mod tests {
         let rule = MD005;
         let violations = rule.check(&parser, None);
 
-        assert!(violations.len() > 0);
+        assert!(!violations.is_empty());
     }
 
     #[test]

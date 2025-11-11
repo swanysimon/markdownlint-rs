@@ -65,7 +65,6 @@ fn run_markdownlint_cli2(file_path: &Path) -> Vec<(String, usize)> {
                 // parts[1] could be "5 MD001/..." or "5" (if column is present)
                 // Extract just the line number by taking first whitespace-separated token
                 if let Ok(line_num) = parts[1]
-                    .trim()
                     .split_whitespace()
                     .next()
                     .unwrap_or("")

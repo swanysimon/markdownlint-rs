@@ -106,8 +106,8 @@ impl Rule for MD013 {
             }
 
             // Determine the limit for this line
-            let limit = if is_heading && heading_line_length.is_some() {
-                heading_line_length.unwrap()
+            let limit = if is_heading {
+                heading_line_length.unwrap_or(line_length)
             } else {
                 line_length
             };
@@ -187,7 +187,7 @@ mod tests {
         let config = serde_json::json!({ "code_blocks": true });
         let violations = rule.check(&parser, Some(&config));
 
-        assert!(violations.len() > 0);
+        assert!(!violations.is_empty());
     }
 
     #[test]
