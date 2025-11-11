@@ -97,7 +97,15 @@ Automated release process that ensures all CI checks pass before building and pu
 
 #### Jobs:
 
+**Verify Tag Version** (`verify-version`)
+- Extracts version from git tag (e.g., `v0.1.0` → `0.1.0`)
+- Extracts version from `Cargo.toml`
+- Compares versions and fails if they don't match
+- Runs before CI to provide fast feedback on version mismatches
+- Use `cargo-release` to automate version bumping and tagging
+
 **Run CI Checks** (`ci`)
+- Runs after version verification
 - Calls `ci.yml` workflow
 - All CI jobs must pass before proceeding
 - Blocks release if any quality checks fail
@@ -148,20 +156,47 @@ markdownlint-rs-windows-x86_64.exe.zip.sha256
 
 #### Creating a Release
 
-To create a new release:
+**Recommended: Using cargo-release**
+
+Install cargo-release if you haven't already:
+```bash
+cargo install cargo-release
+```
+
+Create a release (automatically updates version, commits, tags, and pushes):
+```bash
+# Patch release (0.1.0 -> 0.1.1)
+cargo release patch --execute
+
+# Minor release (0.1.0 -> 0.2.0)
+cargo release minor --execute
+
+# Major release (0.1.0 -> 1.0.0)
+cargo release major --execute
+```
+
+**Manual method:**
 
 ```bash
-# Create and push a version tag
+# 1. Update version in Cargo.toml
+# 2. Commit the change
+# 3. Create and push a version tag
 git tag v0.1.0
+git push origin main
 git push origin v0.1.0
 ```
 
+**Note:** The git tag version (e.g., `v0.1.0`) must match the version in `Cargo.toml` (e.g., `0.1.0`), or the release will fail.
+
 The workflow will automatically:
-1. Run all CI checks
-2. Create a GitHub release (if CI passes)
-3. Build binaries for all platforms
-4. Upload binaries with checksums
-5. Publish to crates.io
+1. Verify tag matches Cargo.toml version
+2. Run all CI checks
+3. Create a GitHub release (if CI passes)
+4. Build binaries for all platforms
+5. Upload binaries with checksums
+6. Publish to crates.io
+
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for detailed release instructions.
 
 #### Multiple Tags on Same Commit
 
