@@ -49,11 +49,12 @@ impl Rule for MD003 {
             } else if line_num + 1 < parser.lines().len() {
                 // Check for setext (next line is === or ---)
                 let next_line = parser.lines()[line_num + 1];
-                let is_setext_underline = (next_line.chars().all(|c| c == '=' || c.is_whitespace())
-                    && next_line.contains('='))
-                    || (next_line.chars().all(|c| c == '-' || c.is_whitespace())
-                        && next_line.contains('-')
-                        && next_line.trim().len() >= 3);
+                let is_setext_underline =
+                    (next_line.chars().all(|c| c == '=' || c.is_whitespace())
+                        && next_line.contains('='))
+                        || (next_line.chars().all(|c| c == '-' || c.is_whitespace())
+                            && next_line.contains('-')
+                            && next_line.trim().len() >= 3);
 
                 if is_setext_underline {
                     Some(HeadingStyle::Setext)
