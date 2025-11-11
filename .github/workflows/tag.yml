@@ -1,48 +1,102 @@
-name: Manual Release
-
-# This workflow is for manual release testing only.
-# Normal releases are automatically triggered by pushing version tags (handled by tag.yml).
-# Use this workflow only for testing the release process without creating a real release.
+name: Tag and Release
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version number (e.g., 1.0.0)'
-        required: true
-        type: string
+  push:
+    tags:
+      - 'v*.*.*'
+
+# Prevent multiple releases for multiple tags on the same commit
+concurrency:
+  group: release-${{ github.sha }}
+  cancel-in-progress: false
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # First, run all CI checks
+  ci:
+    name: Run CI Checks
+    uses: ./.github/workflows/ci.yml
+
+  # Only create release if CI passes
   create-release:
-    name: Create Test Release
+    name: Create Release
+    needs: ci
     runs-on: ubuntu-latest
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
-      version: ${{ inputs.version }}
+      version: ${{ steps.get_version.outputs.version }}
+      release_created: ${{ steps.check_release.outputs.exists == 'false' }}
     steps:
-      - name: Create test tag
+      - name: Get version from tag
+        id: get_version
         run: |
-          echo "Creating test release for version ${{ inputs.version }}"
-          echo "This is a MANUAL TEST release - not for production use"
+          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Check if release already exists
+        id: check_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view ${{ github.ref_name }} --repo ${{ github.repository }} >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Release ${{ github.ref_name }} already exists, skipping creation"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Create Release
         id: create_release
+        if: steps.check_release.outputs.exists == 'false'
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ inputs.version }}-test
-          release_name: Test Release v${{ inputs.version }}
-          draft: true
-          prerelease: true
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
           body: |
-            **This is a test release created manually for testing purposes.**
+            Release ${{ github.ref_name }}
 
-            Do not use this release in production. Delete after testing.
+            ## Installation
 
+            Download the appropriate binary for your platform from the assets below.
+
+            ### Verify checksums
+
+            Each binary includes a `.sha256` file for verification:
+
+            ```bash
+            # Linux/macOS
+            sha256sum -c markdownlint-rs-*.sha256
+
+            # Windows (PowerShell)
+            $expected = (Get-Content markdownlint-rs-*.sha256).Split()[0]
+            $actual = (Get-FileHash markdownlint-rs-*.exe).Hash.ToLower()
+            if ($expected -eq $actual) { "OK" } else { "FAILED" }
+            ```
+
+      - name: Get existing release upload URL
+        id: get_existing_release
+        if: steps.check_release.outputs.exists == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          upload_url=$(gh release view ${{ github.ref_name }} --repo ${{ github.repository }} --json uploadUrl -q .uploadUrl)
+          echo "upload_url=$upload_url" >> $GITHUB_OUTPUT
+
+      - name: Set upload URL output
+        id: set_upload_url
+        run: |
+          if [[ "${{ steps.check_release.outputs.exists }}" == "true" ]]; then
+            echo "upload_url=${{ steps.get_existing_release.outputs.upload_url }}" >> $GITHUB_OUTPUT
+          else
+            echo "upload_url=${{ steps.create_release.outputs.upload_url }}" >> $GITHUB_OUTPUT
+          fi
+
+  # Build and upload release binaries
   build-release:
     name: Build Release Binaries
     needs: create-release
@@ -195,9 +249,11 @@ jobs:
           asset_name: ${{ matrix.asset_name }}.zip.sha256
           asset_content_type: text/plain
 
+  # Publish to crates.io only after successful builds
   publish-crates-io:
     name: Publish to crates.io
-    needs: build-release
+    needs: [create-release, build-release]
+    if: needs.create-release.outputs.release_created == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
