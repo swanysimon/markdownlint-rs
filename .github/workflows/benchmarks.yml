@@ -1,0 +1,68 @@
+name: Benchmarks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  benchmark:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-bench-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Run benchmarks
+        run: |
+          # Create test files of various sizes
+          mkdir -p bench-files
+
+          # Small file (1KB)
+          head -c 1024 /dev/urandom | base64 > bench-files/small.md
+
+          # Medium file (100KB)
+          head -c 102400 /dev/urandom | base64 > bench-files/medium.md
+
+          # Large file (1MB)
+          head -c 1048576 /dev/urandom | base64 > bench-files/large.md
+
+          # Build in release mode
+          cargo build --release
+
+          # Run benchmark
+          echo "### Benchmark Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| File Size | Time |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|------|" >> $GITHUB_STEP_SUMMARY
+
+          # Benchmark small file
+          SMALL_TIME=$(time -f "%e" ./target/release/markdownlint-rs bench-files/small.md 2>&1 | grep real | awk '{print $2}')
+          echo "| Small (1KB) | ${SMALL_TIME}s |" >> $GITHUB_STEP_SUMMARY
+
+          # Benchmark medium file
+          MEDIUM_TIME=$(time -f "%e" ./target/release/markdownlint-rs bench-files/medium.md 2>&1 | grep real | awk '{print $2}')
+          echo "| Medium (100KB) | ${MEDIUM_TIME}s |" >> $GITHUB_STEP_SUMMARY
+
+          # Benchmark large file
+          LARGE_TIME=$(time -f "%e" ./target/release/markdownlint-rs bench-files/large.md 2>&1 | grep real | awk '{print $2}')
+          echo "| Large (1MB) | ${LARGE_TIME}s |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Compare with markdownlint-cli2 (if available)
+        continue-on-error: true
+        run: |
+          # Install markdownlint-cli2 for comparison
+          npm install -g markdownlint-cli2 || echo "Could not install markdownlint-cli2"
