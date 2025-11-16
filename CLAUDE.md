@@ -158,6 +158,24 @@ Based on ripgrep and exa patterns:
   - Architecture decisions and rationale
   - Phase tracking for project completion
 
+### Docker Container Distribution
+- **Multi-stage builds**: Separate builder stage (Rust Alpine) and runtime stage (Alpine) for minimal image size
+- **Static linking**: Build with musl target (`x86_64-unknown-linux-musl`) for fully static binaries
+- **Security best practices**:
+  - Run as non-root user (uid/gid 1000)
+  - Minimal runtime dependencies (Alpine base with ca-certificates only)
+  - Use official Rust Alpine image for builds
+- **Multi-platform support**: Build for `linux/amd64` and `linux/arm64` using Docker Buildx
+- **GitHub Container Registry**: Push to ghcr.io with automatic tagging
+  - `latest` tag for newest release
+  - Semantic version tags (`1.0.0`, `1.0`, `1`)
+  - Uses docker/metadata-action for automatic tag generation
+- **Optimizations**:
+  - GitHub Actions cache for layer caching (`cache-from`/`cache-to`)
+  - .dockerignore to exclude build artifacts and unnecessary files
+  - QEMU for cross-platform builds on x86 runners
+- **Workspace pattern**: Container expects `/workspace` as working directory for user files
+
 ---
 
 ## Phase 1: Project Foundation ✅
@@ -634,10 +652,10 @@ Using `clap` with derive macros:
 - [x] Build static binaries (musl on Linux)
 - [x] Generate SHA256 checksums for all binaries
 - [x] Create platform-specific archives (tar.gz for Unix, zip for Windows)
+- [x] Docker image (multi-platform linux/amd64 and linux/arm64 on ghcr.io)
 - [ ] Publish to crates.io (workflow ready, needs CARGO_REGISTRY_TOKEN)
 - [ ] Consider: Homebrew formula (future enhancement)
 - [ ] Consider: Debian package (future enhancement)
-- [ ] Consider: Docker image (future enhancement)
 - [ ] Consider: npm wrapper package for Node.js compatibility (future enhancement)
 
 ### 12.4 CI/CD ✅
@@ -694,6 +712,7 @@ The project completion status:
 - ✅ Documentation is complete and accurate
 - 🔜 Published to crates.io (workflow ready, awaiting first release)
 - ✅ Cross-platform binaries available (5 platforms supported)
+- ✅ Docker images available (multi-platform on ghcr.io)
 - ✅ Compatibility with markdownlint-cli2 verified on real projects
 - ✅ CI/CD pipeline with quality gates
 - ✅ Automated release process with cargo-release
@@ -738,6 +757,7 @@ Legend: ✅ Complete | ⚠️ Partial | 🔜 Ready but not executed
 - ✅ CLI with all basic options
 - ✅ Comprehensive CI/CD with quality gates
 - ✅ Multi-platform binary builds (5 platforms)
+- ✅ Docker images (linux/amd64 and linux/arm64)
 - ✅ Complete user and developer documentation
 - ✅ Dogfooding (project lints its own docs)
 

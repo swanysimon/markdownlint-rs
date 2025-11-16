@@ -88,6 +88,40 @@ cargo build --release
 sudo cp target/release/markdownlint-rs /usr/local/bin/
 ```
 
+### Docker
+
+Pull from GitHub Container Registry:
+
+```bash
+docker pull ghcr.io/swanysimon/markdownlint-rs:latest
+```
+
+Run on files in the current directory:
+
+```bash
+docker run --rm -v "$PWD:/workspace" ghcr.io/swanysimon/markdownlint-rs:latest
+```
+
+Run with auto-fix:
+
+```bash
+docker run --rm -v "$PWD:/workspace" ghcr.io/swanysimon/markdownlint-rs:latest --fix
+```
+
+Run with custom config:
+
+```bash
+docker run --rm -v "$PWD:/workspace" ghcr.io/swanysimon/markdownlint-rs:latest --config .markdownlint.json
+```
+
+**Available tags:**
+- `latest` - Latest stable release
+- `1.x.x` - Specific version (e.g., `1.0.0`)
+- `1.x` - Latest patch version in minor release (e.g., `1.0`)
+- `1` - Latest minor version in major release
+
+The Docker image supports both `linux/amd64` and `linux/arm64` platforms.
+
 ## Usage
 
 ### Basic Usage
