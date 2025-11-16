@@ -30,7 +30,6 @@ pulldown-cmark = "0.9"
 regex = "1.10"
 
 # Error handling
-anyhow = "1.0"
 thiserror = "1.0"
 
 [dev-dependencies]
