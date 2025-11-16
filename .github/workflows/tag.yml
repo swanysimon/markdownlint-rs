@@ -104,11 +104,11 @@ jobs:
 
             ```bash
             # Linux/macOS
-            sha256sum -c markdownlint-rs-*.sha256
+            sha256sum -c mdlint-*.sha256
 
             # Windows (PowerShell)
-            $expected = (Get-Content markdownlint-rs-*.sha256).Split()[0]
-            $actual = (Get-FileHash markdownlint-rs-*.exe).Hash.ToLower()
+            $expected = (Get-Content mdlint-*.sha256).Split()[0]
+            $actual = (Get-FileHash mdlint.exe).Hash.ToLower()
             if ($expected -eq $actual) { "OK" } else { "FAILED" }
             ```
 
@@ -142,39 +142,39 @@ jobs:
           # Linux x86_64
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact_name: markdownlint-rs
-            asset_name: markdownlint-rs-linux-x86_64
+            artifact_name: mdlint
+            asset_name: mdlint-linux-x86_64
 
           # Linux x86_64 (musl - static binary)
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            artifact_name: markdownlint-rs
-            asset_name: markdownlint-rs-linux-x86_64-musl
+            artifact_name: mdlint
+            asset_name: mdlint-linux-x86_64-musl
 
           # Linux aarch64
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
-            artifact_name: markdownlint-rs
-            asset_name: markdownlint-rs-linux-aarch64
+            artifact_name: mdlint
+            asset_name: mdlint-linux-aarch64
             cross: true
 
           # macOS x86_64
           - os: macos-latest
             target: x86_64-apple-darwin
-            artifact_name: markdownlint-rs
-            asset_name: markdownlint-rs-macos-x86_64
+            artifact_name: mdlint
+            asset_name: mdlint-macos-x86_64
 
           # macOS aarch64 (Apple Silicon)
           - os: macos-latest
             target: aarch64-apple-darwin
-            artifact_name: markdownlint-rs
-            asset_name: markdownlint-rs-macos-aarch64
+            artifact_name: mdlint
+            asset_name: mdlint-macos-aarch64
 
           # Windows x86_64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact_name: markdownlint-rs.exe
-            asset_name: markdownlint-rs-windows-x86_64.exe
+            artifact_name: mdlint.exe
+            asset_name: mdlint-windows-x86_64.exe
 
     steps:
       - name: Checkout repository
