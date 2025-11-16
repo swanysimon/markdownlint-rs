@@ -111,17 +111,17 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-dogfood-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Build markdownlint-rs
+      - name: Build mdlint
         run: cargo build --release
 
       - name: Lint project documentation
         run: |
-          ./target/release/markdownlint-rs README.md CONTRIBUTING.md CLAUDE.md IMPROVEMENTS.md .github/WORKFLOWS.md
+          ./target/release/mdlint README.md CONTRIBUTING.md CLAUDE.md IMPROVEMENTS.md .github/WORKFLOWS.md
 
       - name: Lint all markdown (should only fail on test fixtures)
         run: |
           # This will exit 1 due to test fixtures, which is expected
-          ./target/release/markdownlint-rs || echo "✅ Expected violations in test fixtures"
+          ./target/release/mdlint || echo "✅ Expected violations in test fixtures"
 
   build:
     name: Build

@@ -33,43 +33,43 @@ Download the latest release for your platform from the [releases page](https://g
 
 **Linux (x86_64)**:
 ```bash
-curl -LO https://github.com/swanysimon/markdownlint-rs/releases/latest/download/markdownlint-rs-linux-x86_64.tar.gz
-tar xzf markdownlint-rs-linux-x86_64.tar.gz
-sudo mv markdownlint-rs /usr/local/bin/
+curl -LO https://github.com/swanysimon/markdownlint-rs/releases/latest/download/mdlint-linux-x86_64.tar.gz
+tar xzf mdlint-linux-x86_64.tar.gz
+sudo mv mdlint /usr/local/bin/
 ```
 
 **Linux (ARM64)**:
 ```bash
-curl -LO https://github.com/swanysimon/markdownlint-rs/releases/latest/download/markdownlint-rs-linux-aarch64.tar.gz
-tar xzf markdownlint-rs-linux-aarch64.tar.gz
-sudo mv markdownlint-rs /usr/local/bin/
+curl -LO https://github.com/swanysimon/markdownlint-rs/releases/latest/download/mdlint-linux-aarch64.tar.gz
+tar xzf mdlint-linux-aarch64.tar.gz
+sudo mv mdlint /usr/local/bin/
 ```
 
 **macOS (Intel)**:
 ```bash
-curl -LO https://github.com/swanysimon/markdownlint-rs/releases/latest/download/markdownlint-rs-macos-x86_64.tar.gz
-tar xzf markdownlint-rs-macos-x86_64.tar.gz
-sudo mv markdownlint-rs /usr/local/bin/
+curl -LO https://github.com/swanysimon/markdownlint-rs/releases/latest/download/mdlint-macos-x86_64.tar.gz
+tar xzf mdlint-macos-x86_64.tar.gz
+sudo mv mdlint /usr/local/bin/
 ```
 
 **macOS (Apple Silicon)**:
 ```bash
-curl -LO https://github.com/swanysimon/markdownlint-rs/releases/latest/download/markdownlint-rs-macos-aarch64.tar.gz
-tar xzf markdownlint-rs-macos-aarch64.tar.gz
-sudo mv markdownlint-rs /usr/local/bin/
+curl -LO https://github.com/swanysimon/markdownlint-rs/releases/latest/download/mdlint-macos-aarch64.tar.gz
+tar xzf mdlint-macos-aarch64.tar.gz
+sudo mv mdlint /usr/local/bin/
 ```
 
 **Windows**:
-Download `markdownlint-rs-windows-x86_64.exe.zip` from the releases page and extract it to a directory in your PATH.
+Download `mdlint-windows-x86_64.exe.zip` from the releases page and extract it to a directory in your PATH.
 
 **Verify checksum** (optional but recommended):
 ```bash
 # Linux/macOS
-sha256sum -c markdownlint-rs-*.sha256
+sha256sum -c mdlint-*.sha256
 
 # Windows (PowerShell)
-$expected = (Get-Content markdownlint-rs-*.sha256).Split()[0]
-$actual = (Get-FileHash markdownlint-rs.exe).Hash.ToLower()
+$expected = (Get-Content mdlint-*.sha256).Split()[0]
+$actual = (Get-FileHash mdlint.exe).Hash.ToLower()
 if ($expected -eq $actual) { "OK" } else { "FAILED" }
 ```
 
@@ -85,7 +85,7 @@ cargo install markdownlint-rs
 git clone https://github.com/swanysimon/markdownlint-rs.git
 cd markdownlint-rs
 cargo build --release
-sudo cp target/release/markdownlint-rs /usr/local/bin/
+sudo cp target/release/mdlint /usr/local/bin/
 ```
 
 ### Docker
@@ -128,23 +128,23 @@ The Docker image supports both `linux/amd64` and `linux/arm64` platforms.
 
 Lint all Markdown files in the current directory:
 ```bash
-markdownlint-rs
+mdlint
 ```
 
 Lint specific files or directories:
 ```bash
-markdownlint-rs README.md docs/
+mdlint README.md docs/
 ```
 
 Lint with auto-fix:
 ```bash
-markdownlint-rs --fix
+mdlint --fix
 ```
 
 ### Command-Line Options
 
 ```
-markdownlint-rs [OPTIONS] [PATTERNS]...
+mdlint [OPTIONS] [PATTERNS]...
 
 Arguments:
   [PATTERNS]...  Glob patterns for files to lint (defaults to current directory)
@@ -163,27 +163,27 @@ Options:
 
 **Lint with custom config file:**
 ```bash
-markdownlint-rs --config .markdownlint.json
+mdlint --config .markdownlint.json
 ```
 
 **Output as JSON:**
 ```bash
-markdownlint-rs --format json
+mdlint --format json
 ```
 
 **Lint specific glob patterns:**
 ```bash
-markdownlint-rs "**/*.md" "!node_modules/**"
+mdlint "**/*.md" "!node_modules/**"
 ```
 
 **Fix issues automatically:**
 ```bash
-markdownlint-rs --fix docs/
+mdlint --fix docs/
 ```
 
 **Disable color output (for CI):**
 ```bash
-markdownlint-rs --no-color
+mdlint --no-color
 ```
 
 ## Configuration
@@ -279,7 +279,7 @@ See the [markdownlint rules documentation](https://github.com/DavidAnson/markdow
 
 Use exit codes in CI/CD pipelines:
 ```bash
-markdownlint-rs || exit 1  # Fail build on linting errors
+mdlint || exit 1  # Fail build on linting errors
 ```
 
 ## Supported Rules

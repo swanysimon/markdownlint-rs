@@ -9,6 +9,10 @@ repository = "https://github.com/swanysimon/markdownlint-rs"
 keywords = ["markdown", "lint", "cli", "formatter"]
 categories = ["command-line-utilities", "development-tools"]
 
+[[bin]]
+name = "mdlint"
+path = "src/main.rs"
+
 [dependencies]
 # CLI parsing
 clap = { version = "4.5", features = ["derive"] }
