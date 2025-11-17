@@ -1,7 +1,9 @@
 use crate::lint::rule::Rule;
 use crate::markdown::MarkdownParser;
 use crate::types::{Fix, Violation};
+use pulldown_cmark::{Event, Tag};
 use serde_json::Value;
+use std::collections::HashSet;
 
 pub struct MD030;
 
@@ -41,12 +43,47 @@ impl Rule for MD030 {
 
         let mut violations = Vec::new();
 
+        // Use AST to identify lines that start with emphasis (to exclude them)
+        let mut emphasis_start_lines = HashSet::new();
+
+        // Calculate line start offsets
+        let mut line_offsets = vec![0];
+        let mut current_offset = 0;
+        for line in parser.lines() {
+            current_offset += line.len() + 1; // +1 for newline
+            line_offsets.push(current_offset);
+        }
+
+        for (event, range) in parser.parse_with_offsets() {
+            if let Event::Start(Tag::Emphasis | Tag::Strong) = event {
+                let line_num = parser.offset_to_line(range.start);
+                // Check if this emphasis starts at the beginning of the line (after whitespace)
+                if let Some(line) = parser.lines().get(line_num - 1) {
+                    let trimmed_start = line.len() - line.trim_start().len();
+                    // If the emphasis starts right at the trimmed position, exclude this line
+                    if let Some(&line_start_offset) = line_offsets.get(line_num - 1) {
+                        if range.start == line_start_offset + trimmed_start {
+                            emphasis_start_lines.insert(line_num);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Now check spacing using string matching, but skip emphasis lines
         for (line_num, line) in parser.lines().iter().enumerate() {
             let line_number = line_num + 1;
+
+            // Skip if line starts with emphasis (bold or italic)
+            if emphasis_start_lines.contains(&line_number) {
+                continue;
+            }
+
             let trimmed = line.trim_start();
 
             // Check unordered list markers
             if trimmed.starts_with('*') || trimmed.starts_with('+') || trimmed.starts_with('-') {
+                let marker_char = trimmed.chars().next().unwrap();
                 let after_marker = &trimmed[1..];
                 let space_count = after_marker.chars().take_while(|&c| c == ' ').count();
 
@@ -58,11 +95,10 @@ impl Rule for MD030 {
                     if space_count != expected {
                         // Fix the spacing after list marker
                         let leading_spaces = &line[..line.len() - trimmed.len()];
-                        let marker = trimmed.chars().next().unwrap();
                         let content = after_marker[space_count..].trim_start();
                         let spaces = " ".repeat(expected);
                         let replacement =
-                            format!("{}{}{}{}", leading_spaces, marker, spaces, content);
+                            format!("{}{}{}{}", leading_spaces, marker_char, spaces, content);
 
                         violations.push(Violation {
                             line: line_number,
@@ -183,5 +219,32 @@ mod tests {
         let violations = rule.check(&parser, Some(&config));
 
         assert_eq!(violations.len(), 0); // 2 spaces now expected
+    }
+
+    #[test]
+    fn test_bold_not_list_marker() {
+        // Bold/emphasis at start of line should not be treated as list marker
+        let content = "**Slice-specific schemas** → some text\n\
+                       **Bold text** at start\n\
+                       *Italic text* here\n\
+                       __Also bold__ text";
+        let parser = MarkdownParser::new(content);
+        let rule = MD030;
+        let violations = rule.check(&parser, None);
+
+        assert_eq!(violations.len(), 0, "Bold/emphasis should not trigger MD030");
+    }
+
+    #[test]
+    fn test_actual_list_with_bold() {
+        // Actual list items can contain bold text
+        let content = "* **Bold** item\n\
+                       + *Italic* item\n\
+                       - Normal item";
+        let parser = MarkdownParser::new(content);
+        let rule = MD030;
+        let violations = rule.check(&parser, None);
+
+        assert_eq!(violations.len(), 0);
     }
 }
