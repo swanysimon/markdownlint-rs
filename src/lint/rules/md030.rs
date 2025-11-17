@@ -61,10 +61,10 @@ impl Rule for MD030 {
                 if let Some(line) = parser.lines().get(line_num - 1) {
                     let trimmed_start = line.len() - line.trim_start().len();
                     // If the emphasis starts right at the trimmed position, exclude this line
-                    if let Some(&line_start_offset) = line_offsets.get(line_num - 1) {
-                        if range.start == line_start_offset + trimmed_start {
-                            emphasis_start_lines.insert(line_num);
-                        }
+                    if let Some(&line_start_offset) = line_offsets.get(line_num - 1)
+                        && range.start == line_start_offset + trimmed_start
+                    {
+                        emphasis_start_lines.insert(line_num);
                     }
                 }
             }
@@ -232,7 +232,11 @@ mod tests {
         let rule = MD030;
         let violations = rule.check(&parser, None);
 
-        assert_eq!(violations.len(), 0, "Bold/emphasis should not trigger MD030");
+        assert_eq!(
+            violations.len(),
+            0,
+            "Bold/emphasis should not trigger MD030"
+        );
     }
 
     #[test]
