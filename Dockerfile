@@ -30,7 +30,7 @@ RUN addgroup -g 1000 markdownlint && \
     adduser -D -u 1000 -G markdownlint markdownlint
 
 # Copy the binary from builder
-COPY --from=builder /build/target/x86_64-unknown-linux-musl/release/markdownlint-rs /usr/local/bin/markdownlint-rs
+COPY --from=builder /build/target/x86_64-unknown-linux-musl/release/mdlint /usr/local/bin/mdlint
 
 # Switch to non-root user
 USER markdownlint
@@ -39,7 +39,7 @@ USER markdownlint
 WORKDIR /workspace
 
 # Set entrypoint
-ENTRYPOINT ["/usr/local/bin/markdownlint-rs"]
+ENTRYPOINT ["/usr/local/bin/mdlint"]
 
 # Default to showing help
 CMD ["--help"]
