@@ -35,9 +35,6 @@ RUN cargo build --release --target $(cat /tmp/rust-target)
 # Runtime stage
 FROM alpine:3.19
 
-# Docker provides these automatically based on --platform
-ARG TARGETARCH
-
 # Install ca-certificates for HTTPS support (if needed in future)
 RUN apk add --no-cache ca-certificates
 
@@ -45,12 +42,10 @@ RUN apk add --no-cache ca-certificates
 RUN addgroup -g 1000 markdownlint && \
     adduser -D -u 1000 -G markdownlint markdownlint
 
-# Copy the binary from builder (path depends on architecture)
-RUN case "${TARGETARCH}" in \
-    amd64) echo "x86_64-unknown-linux-musl" > /tmp/rust-target ;; \
-    arm64) echo "aarch64-unknown-linux-musl" > /tmp/rust-target ;; \
-    esac
+# Copy the target file from builder to determine binary path
+COPY --from=builder /tmp/rust-target /tmp/rust-target
 
+# Copy the binary from builder (path depends on architecture)
 COPY --from=builder /build/target/$(cat /tmp/rust-target)/release/mdlint /usr/local/bin/mdlint
 
 # Switch to non-root user
