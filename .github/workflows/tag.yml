@@ -205,8 +205,8 @@ jobs:
         if: matrix.cross
         run: cross build --release --target ${{ matrix.target }}
 
-      - name: Strip binary (Linux and macOS)
-        if: matrix.os != 'windows-latest'
+      - name: Strip binary (Linux and macOS, native builds only)
+        if: matrix.os != 'windows-latest' && !matrix.cross
         run: strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
 
       - name: Generate SHA256 checksum (Linux and macOS)
