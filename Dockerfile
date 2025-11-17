@@ -3,11 +3,21 @@
 # Build stage
 FROM rust:1.91-alpine AS builder
 
+# Docker provides these automatically based on --platform
+ARG TARGETARCH
+
 # Install build dependencies
 RUN apk add --no-cache musl-dev
 
+# Set Rust target based on architecture
+RUN case "${TARGETARCH}" in \
+    amd64) echo "x86_64-unknown-linux-musl" > /tmp/rust-target ;; \
+    arm64) echo "aarch64-unknown-linux-musl" > /tmp/rust-target ;; \
+    *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
+    esac
+
 # Add musl target for static linking
-RUN rustup target add x86_64-unknown-linux-musl
+RUN rustup target add $(cat /tmp/rust-target)
 
 # Create a new empty shell project
 WORKDIR /build
@@ -19,11 +29,14 @@ COPY Cargo.toml Cargo.lock ./
 COPY src ./src
 COPY tests ./tests
 
-# Build for release with static linking
-RUN cargo build --release --target x86_64-unknown-linux-musl
+# Build for release with static linking (using dynamic target)
+RUN cargo build --release --target $(cat /tmp/rust-target)
 
 # Runtime stage
 FROM alpine:3.19
+
+# Docker provides these automatically based on --platform
+ARG TARGETARCH
 
 # Install ca-certificates for HTTPS support (if needed in future)
 RUN apk add --no-cache ca-certificates
@@ -32,8 +45,13 @@ RUN apk add --no-cache ca-certificates
 RUN addgroup -g 1000 markdownlint && \
     adduser -D -u 1000 -G markdownlint markdownlint
 
-# Copy the binary from builder
-COPY --from=builder /build/target/x86_64-unknown-linux-musl/release/mdlint /usr/local/bin/mdlint
+# Copy the binary from builder (path depends on architecture)
+RUN case "${TARGETARCH}" in \
+    amd64) echo "x86_64-unknown-linux-musl" > /tmp/rust-target ;; \
+    arm64) echo "aarch64-unknown-linux-musl" > /tmp/rust-target ;; \
+    esac
+
+COPY --from=builder /build/target/$(cat /tmp/rust-target)/release/mdlint /usr/local/bin/mdlint
 
 # Switch to non-root user
 USER markdownlint
