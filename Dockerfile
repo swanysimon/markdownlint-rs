@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Build stage
-FROM rust:1.83-alpine AS builder
+FROM rust:1.91-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache musl-dev
