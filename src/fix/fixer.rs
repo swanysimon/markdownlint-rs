@@ -162,8 +162,8 @@ fn apply_single_fix(lines: &mut Vec<String>, fix: &Fix) -> Result<()> {
     }
 
     // Handle column-based fixes (single line, specific columns)
-    if start_line == end_line {
-        if let (Some(col_start), Some(col_end)) = (fix.column_start, fix.column_end) {
+    if start_line == end_line
+        && let (Some(col_start), Some(col_end)) = (fix.column_start, fix.column_end) {
             let line = &lines[start_line];
             let chars: Vec<char> = line.chars().collect();
 
@@ -182,7 +182,6 @@ fn apply_single_fix(lines: &mut Vec<String>, fix: &Fix) -> Result<()> {
             lines[start_line] = format!("{}{}{}", before, fix.replacement, after);
             return Ok(());
         }
-    }
 
     // Handle line-based fixes (replace entire lines)
     if start_line == end_line {

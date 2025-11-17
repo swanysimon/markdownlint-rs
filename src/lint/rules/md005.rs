@@ -54,8 +54,8 @@ impl Rule for MD005 {
                 // Find the level for this indentation
                 current_level = level_indents
                     .iter()
-                    .filter(|(_, &i)| i == indent)
-                    .map(|(&l, _)| l)
+                    .filter(|(_, i)| **i == indent)
+                    .map(|(l, _)| *l)
                     .next()
                     .unwrap_or(0);
             }

@@ -51,12 +51,11 @@ impl Rule for MD024 {
 
                     if siblings_only {
                         // Check if same level heading with same text exists
-                        if let Some(&prev_level) = last_heading_level.as_ref() {
-                            if prev_level != current_heading_level {
+                        if let Some(&prev_level) = last_heading_level.as_ref()
+                            && prev_level != current_heading_level {
                                 // Different level, clear sibling tracking
                                 sibling_headings.clear();
                             }
-                        }
 
                         if let Some(&first_line) =
                             sibling_headings.get(&(current_heading_level, text.clone()))
