@@ -163,25 +163,26 @@ fn apply_single_fix(lines: &mut Vec<String>, fix: &Fix) -> Result<()> {
 
     // Handle column-based fixes (single line, specific columns)
     if start_line == end_line
-        && let (Some(col_start), Some(col_end)) = (fix.column_start, fix.column_end) {
-            let line = &lines[start_line];
-            let chars: Vec<char> = line.chars().collect();
+        && let (Some(col_start), Some(col_end)) = (fix.column_start, fix.column_end)
+    {
+        let line = &lines[start_line];
+        let chars: Vec<char> = line.chars().collect();
 
-            if col_start > chars.len() || col_end > chars.len() {
-                return Err(MarkdownlintError::Fix(format!(
-                    "Fix column range {}..{} out of bounds for line length {}",
-                    col_start,
-                    col_end,
-                    chars.len()
-                )));
-            }
-
-            // Build new line with replacement
-            let before: String = chars[..col_start.saturating_sub(1)].iter().collect();
-            let after: String = chars[col_end..].iter().collect();
-            lines[start_line] = format!("{}{}{}", before, fix.replacement, after);
-            return Ok(());
+        if col_start > chars.len() || col_end > chars.len() {
+            return Err(MarkdownlintError::Fix(format!(
+                "Fix column range {}..{} out of bounds for line length {}",
+                col_start,
+                col_end,
+                chars.len()
+            )));
         }
+
+        // Build new line with replacement
+        let before: String = chars[..col_start.saturating_sub(1)].iter().collect();
+        let after: String = chars[col_end..].iter().collect();
+        lines[start_line] = format!("{}{}{}", before, fix.replacement, after);
+        return Ok(());
+    }
 
     // Handle line-based fixes (replace entire lines)
     if start_line == end_line {

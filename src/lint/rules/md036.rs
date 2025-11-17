@@ -41,16 +41,17 @@ impl Rule for MD036 {
                     .trim_end_matches('_')
                     .chars()
                     .last()
-                    && !punctuation.contains(last_char) {
-                        // Likely being used as a heading
-                        violations.push(Violation {
-                            line: line_number,
-                            column: Some(1),
-                            rule: self.name().to_string(),
-                            message: "Emphasis used instead of a heading".to_string(),
-                            fix: None,
-                        });
-                    }
+                    && !punctuation.contains(last_char)
+                {
+                    // Likely being used as a heading
+                    violations.push(Violation {
+                        line: line_number,
+                        column: Some(1),
+                        rule: self.name().to_string(),
+                        message: "Emphasis used instead of a heading".to_string(),
+                        fix: None,
+                    });
+                }
             }
         }
 

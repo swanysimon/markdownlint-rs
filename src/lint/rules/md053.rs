@@ -30,10 +30,11 @@ impl Rule for MD053 {
             let line_number = line_num + 1;
             let trimmed = line.trim();
             if trimmed.starts_with('[')
-                && let Some(end_bracket) = trimmed.find("]:") {
-                    let label = &trimmed[1..end_bracket];
-                    defined_labels.insert(label.to_lowercase(), line_number);
-                }
+                && let Some(end_bracket) = trimmed.find("]:")
+            {
+                let label = &trimmed[1..end_bracket];
+                defined_labels.insert(label.to_lowercase(), line_number);
+            }
         }
 
         // Second pass: find reference-style links and images in raw text

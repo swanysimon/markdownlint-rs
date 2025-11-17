@@ -30,10 +30,11 @@ impl Rule for MD052 {
             // Match reference definitions: [label]: url
             let trimmed = line.trim();
             if trimmed.starts_with('[')
-                && let Some(end_bracket) = trimmed.find("]:") {
-                    let label = &trimmed[1..end_bracket];
-                    defined_labels.insert(label.to_lowercase());
-                }
+                && let Some(end_bracket) = trimmed.find("]:")
+            {
+                let label = &trimmed[1..end_bracket];
+                defined_labels.insert(label.to_lowercase());
+            }
         }
 
         // Second pass: find reference-style links and images in raw text

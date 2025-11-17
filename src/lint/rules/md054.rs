@@ -40,20 +40,17 @@ impl Rule for MD054 {
                 _ => (false, None),
             };
 
-            if is_link_or_image
-                && let Some(lt) = link_type {
-                    let current_style = match lt {
-                        LinkType::Inline => "inline",
-                        LinkType::Reference | LinkType::Collapsed | LinkType::Shortcut => {
-                            "reference"
-                        }
-                        _ => continue,
-                    };
+            if is_link_or_image && let Some(lt) = link_type {
+                let current_style = match lt {
+                    LinkType::Inline => "inline",
+                    LinkType::Reference | LinkType::Collapsed | LinkType::Shortcut => "reference",
+                    _ => continue,
+                };
 
-                    if style == "consistent" {
-                        if let Some(first) = first_style {
-                            if current_style != first {
-                                violations.push(Violation {
+                if style == "consistent" {
+                    if let Some(first) = first_style {
+                        if current_style != first {
+                            violations.push(Violation {
                                     line: parser.offset_to_line(range.start),
                                     column: Some(1),
                                     rule: self.name().to_string(),
@@ -63,23 +60,23 @@ impl Rule for MD054 {
                                     ),
                                     fix: None,
                                 });
-                            }
-                        } else {
-                            first_style = Some(current_style);
                         }
-                    } else if current_style != style {
-                        violations.push(Violation {
-                            line: parser.offset_to_line(range.start),
-                            column: Some(1),
-                            rule: self.name().to_string(),
-                            message: format!(
-                                "Link/image style should be '{}', found '{}'",
-                                style, current_style
-                            ),
-                            fix: None,
-                        });
+                    } else {
+                        first_style = Some(current_style);
                     }
+                } else if current_style != style {
+                    violations.push(Violation {
+                        line: parser.offset_to_line(range.start),
+                        column: Some(1),
+                        rule: self.name().to_string(),
+                        message: format!(
+                            "Link/image style should be '{}', found '{}'",
+                            style, current_style
+                        ),
+                        fix: None,
+                    });
                 }
+            }
         }
 
         violations
