@@ -24,7 +24,7 @@ serde_yaml = "0.9"
 jsonc-parser = { version = "0.23", features = ["serde"] }
 
 # Globbing and file traversal
-ignore = "0.4"
+ignore = "0.4.23"  # Pinned: 0.4.25+ requires edition2024
 globset = "0.4"
 
 # Markdown parsing
