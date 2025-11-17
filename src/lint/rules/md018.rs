@@ -33,8 +33,8 @@ impl Rule for MD018 {
                 // Valid heading should have 1-6 hashes
                 if hash_count > 0 && hash_count <= 6 {
                     // Check character after the hashes
-                    if let Some(next_char) = trimmed.chars().nth(hash_count) {
-                        if !next_char.is_whitespace() && next_char != '#' {
+                    if let Some(next_char) = trimmed.chars().nth(hash_count)
+                        && !next_char.is_whitespace() && next_char != '#' {
                             // Insert space after the hashes
                             let hashes = "#".repeat(hash_count);
                             let rest = &trimmed[hash_count..];
@@ -55,7 +55,6 @@ impl Rule for MD018 {
                                 }),
                             });
                         }
-                    }
                 }
             }
         }

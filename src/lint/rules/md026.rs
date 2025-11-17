@@ -45,8 +45,8 @@ impl Rule for MD026 {
                 }
                 Event::End(Tag::Heading(_, _, _)) if in_heading => {
                     let trimmed = current_heading_text.trim();
-                    if let Some(last_char) = trimmed.chars().last() {
-                        if punctuation.contains(last_char) {
+                    if let Some(last_char) = trimmed.chars().last()
+                        && punctuation.contains(last_char) {
                             violations.push(Violation {
                                 line: current_heading_line,
                                 column: Some(1),
@@ -58,7 +58,6 @@ impl Rule for MD026 {
                                 fix: None,
                             });
                         }
-                    }
                     in_heading = false;
                 }
                 _ => {}

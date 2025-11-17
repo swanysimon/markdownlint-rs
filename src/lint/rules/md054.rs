@@ -40,8 +40,8 @@ impl Rule for MD054 {
                 _ => (false, None),
             };
 
-            if is_link_or_image {
-                if let Some(lt) = link_type {
+            if is_link_or_image
+                && let Some(lt) = link_type {
                     let current_style = match lt {
                         LinkType::Inline => "inline",
                         LinkType::Reference | LinkType::Collapsed | LinkType::Shortcut => {
@@ -80,7 +80,6 @@ impl Rule for MD054 {
                         });
                     }
                 }
-            }
         }
 
         violations

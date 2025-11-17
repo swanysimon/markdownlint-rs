@@ -41,8 +41,7 @@ impl Rule for MD036 {
                     .trim_end_matches('_')
                     .chars()
                     .last()
-                {
-                    if !punctuation.contains(last_char) {
+                    && !punctuation.contains(last_char) {
                         // Likely being used as a heading
                         violations.push(Violation {
                             line: line_number,
@@ -52,7 +51,6 @@ impl Rule for MD036 {
                             fix: None,
                         });
                     }
-                }
             }
         }
 
