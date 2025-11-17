@@ -6,6 +6,9 @@ FROM rust:1.91-alpine AS builder
 # Install build dependencies
 RUN apk add --no-cache musl-dev
 
+# Add musl target for static linking
+RUN rustup target add x86_64-unknown-linux-musl
+
 # Create a new empty shell project
 WORKDIR /build
 
