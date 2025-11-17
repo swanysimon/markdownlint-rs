@@ -231,13 +231,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image (amd64)
+      - name: Build Docker image (amd64 only for CI)
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -258,11 +255,3 @@ jobs:
           docker run --rm -v "$PWD:/workspace" mdlint:ci-test test.md
           rm test.md
 
-      - name: Build Docker image (arm64)
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          platforms: linux/arm64
-          push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
