@@ -46,18 +46,16 @@ impl Rule for MD026 {
                 Event::End(Tag::Heading(_, _, _)) if in_heading => {
                     let trimmed = current_heading_text.trim();
                     if let Some(last_char) = trimmed.chars().last()
-                        && punctuation.contains(last_char) {
-                            violations.push(Violation {
-                                line: current_heading_line,
-                                column: Some(1),
-                                rule: self.name().to_string(),
-                                message: format!(
-                                    "Trailing punctuation in heading: '{}'",
-                                    last_char
-                                ),
-                                fix: None,
-                            });
-                        }
+                        && punctuation.contains(last_char)
+                    {
+                        violations.push(Violation {
+                            line: current_heading_line,
+                            column: Some(1),
+                            rule: self.name().to_string(),
+                            message: format!("Trailing punctuation in heading: '{}'", last_char),
+                            fix: None,
+                        });
+                    }
                     in_heading = false;
                 }
                 _ => {}

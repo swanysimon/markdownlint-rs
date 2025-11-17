@@ -1,5 +1,5 @@
 use clap::Parser;
-use markdownlint_rs::config::{merge_many_configs, Config, ConfigLoader};
+use markdownlint_rs::config::{Config, ConfigLoader, merge_many_configs};
 use markdownlint_rs::error::Result;
 use markdownlint_rs::fix::Fixer;
 use markdownlint_rs::format::{DefaultFormatter, Formatter, JsonFormatter};
