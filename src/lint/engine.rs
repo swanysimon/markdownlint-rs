@@ -22,8 +22,7 @@ impl LintEngine {
         Ok(self
             .registry
             .all_rules()
-            .map(|rule| self.violations(&parser, rule))
-            .flatten()
+            .flat_map(|rule| self.violations(&parser, rule))
             .collect())
     }
 
@@ -41,7 +40,7 @@ impl LintEngine {
             None => None,
         };
 
-        rule.check(&parser, config_value.as_ref())
+        rule.check(parser, config_value.as_ref())
     }
 
     pub fn lint_file(&self, path: &Path) -> Result<Vec<Violation>> {

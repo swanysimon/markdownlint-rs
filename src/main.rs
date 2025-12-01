@@ -44,7 +44,7 @@ struct Cli {
 fn main() {
     process::exit(
         run()
-            .map(|had_errors| return if had_errors { 1 } else { 0 })
+            .map(|had_errors| if had_errors { 1 } else { 0 })
             .unwrap_or(2),
     );
 }
@@ -111,7 +111,7 @@ fn find_files(cli: &Cli, config: &Config) -> Result<Vec<PathBuf>> {
             walker
                 .find_markdown_files(&path)?
                 .into_iter()
-                .for_each(|path| add_to_file(path));
+                .for_each(&mut add_to_file);
         } else if path.is_file() {
             add_to_file(path);
         } else {
