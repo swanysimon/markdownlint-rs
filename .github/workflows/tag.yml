@@ -5,82 +5,49 @@ on:
     tags:
       - 'v*.*.*'
 
-# Prevent multiple releases for multiple tags on the same commit
+# Prevent concurrent builds: only one at a time (main pushes + releases)
 concurrency:
-  group: release-${{ github.sha }}
+  group: main-build
   cancel-in-progress: false
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # Verify tag matches Cargo.toml version
-  verify-version:
-    name: Verify Tag Version
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Extract versions
-        id: versions
-        run: |
-          # Get version from git tag (remove 'v' prefix)
-          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
-          echo "tag_version=$TAG_VERSION" >> $GITHUB_OUTPUT
-
-          # Get version from Cargo.toml
-          CARGO_VERSION=$(grep -m1 '^version = ' Cargo.toml | cut -d'"' -f2)
-          echo "cargo_version=$CARGO_VERSION" >> $GITHUB_OUTPUT
-
-          echo "Tag version: $TAG_VERSION"
-          echo "Cargo.toml version: $CARGO_VERSION"
-
-      - name: Compare versions
-        run: |
-          if [ "${{ steps.versions.outputs.tag_version }}" != "${{ steps.versions.outputs.cargo_version }}" ]; then
-            echo "❌ Error: Tag version (${{ steps.versions.outputs.tag_version }}) does not match Cargo.toml version (${{ steps.versions.outputs.cargo_version }})"
-            echo ""
-            echo "Please update Cargo.toml version before creating a release tag."
-            echo "You can use 'cargo release' to automate this process."
-            exit 1
-          fi
-          echo "✅ Version verified: ${{ steps.versions.outputs.tag_version }}"
-
-  # Run all CI checks (after version verification)
-  ci:
-    name: Run CI Checks
-    needs: verify-version
-    uses: ./.github/workflows/ci.yml
-
-  # Only create release if CI passes
-  create-release:
-    name: Create Draft Release
-    needs: ci
+  draft-release:
+    name: Create draft release
     runs-on: ubuntu-latest
     permissions:
       contents: write
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
-      version: ${{ steps.get_version.outputs.version }}
+      version: ${{ steps.version.outputs.version }}
     steps:
-      - name: Get version from tag
-        id: get_version
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get tag version
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Compare tag and Cargo versions
+        env:
+          TAG_VERSION: ${{ steps.version.outputs.version }}
         run: |
-          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          CARGO_VERSION="$(yq -roy '.package.version' Cargo.toml)"
+          if [[ "$TAG_VERSION" != "$CARGO_VERSION" ]]; then
+            echo "❌ Error: Tag version ${TAG_VERSION} does not match Cargo.toml version ${CARGO_VERSION}" >&2
+            exit 1
+          fi
 
       - name: Check if release already exists
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if gh release view ${{ github.ref_name }} --repo ${{ github.repository }} >/dev/null 2>&1; then
-            echo "❌ Error: Release ${{ github.ref_name }} already exists"
-            echo ""
-            echo "With immutable releases enabled, you cannot modify existing releases."
-            echo "If you need to create a new release, use a different version tag."
+            echo "❌ Error: Release ${{ steps.version.outputs.version }} already exists" >&2
             exit 1
           fi
-          echo "✅ Release does not exist, proceeding with creation"
 
       - name: Create Draft Release
         id: create_release
@@ -129,11 +96,15 @@ jobs:
             docker pull ghcr.io/${{ github.repository }}:${{ steps.get_version.outputs.version }}
             ```
 
+  ci:
+    name: Run CI Checks
+    needs: draft-release
+    uses: ./.github/workflows/ci.yml
 
   # Build and upload release binaries
   build-release:
     name: Build Release Binaries
-    needs: create-release
+    needs: [ draft-release, ci ]
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write
@@ -146,18 +117,21 @@ jobs:
             target: x86_64-unknown-linux-gnu
             artifact_name: mdlint
             asset_name: mdlint-linux-x86_64
+            archive_format: tar.gz
 
           # Linux x86_64 (musl - static binary)
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
             artifact_name: mdlint
             asset_name: mdlint-linux-x86_64-musl
+            archive_format: tar.gz
 
           # Linux aarch64
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             artifact_name: mdlint
             asset_name: mdlint-linux-aarch64
+            archive_format: tar.gz
             cross: true
 
           # macOS x86_64
@@ -165,18 +139,21 @@ jobs:
             target: x86_64-apple-darwin
             artifact_name: mdlint
             asset_name: mdlint-macos-x86_64
+            archive_format: tar.gz
 
           # macOS aarch64 (Apple Silicon)
           - os: macos-latest
             target: aarch64-apple-darwin
             artifact_name: mdlint
             asset_name: mdlint-macos-aarch64
+            archive_format: tar.gz
 
           # Windows x86_64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             artifact_name: mdlint.exe
             asset_name: mdlint-windows-x86_64.exe
+            archive_format: zip
 
     steps:
       - name: Checkout repository
@@ -193,102 +170,61 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y musl-tools
 
-      - name: Install cross (for cross-compilation)
-        if: matrix.cross
-        run: cargo install cross --git https://github.com/cross-rs/cross
-
       - name: Build release binary
         if: ${{ !matrix.cross }}
-        run: cargo build --release --target ${{ matrix.target }}
+        run: |
+          cargo build --release --target ${{ matrix.target }}
+          if [[ "${{ matrix.os }}" != "windows-latest" ]]; then
+            strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+          fi
 
       - name: Build release binary (cross)
         if: matrix.cross
-        run: cross build --release --target ${{ matrix.target }}
-
-      - name: Strip binary (Linux and macOS, native builds only)
-        if: matrix.os != 'windows-latest' && !matrix.cross
-        run: strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
-
-      - name: Generate SHA256 checksum (Linux and macOS)
-        if: matrix.os != 'windows-latest'
         run: |
-          cd target/${{ matrix.target }}/release
+          cargo install cross --git https://github.com/cross-rs/cross
+          cross build --release --target ${{ matrix.target }}
+
+      - name: Package release (Unix)
+        if: matrix.os != 'windows-latest'
+        working-directory: target/${{ matrix.target }}/release
+        run: |
+          # Generate checksums
           sha256sum ${{ matrix.artifact_name }} > ${{ matrix.asset_name }}.sha256
-          cat ${{ matrix.asset_name }}.sha256
 
-      - name: Generate SHA256 checksum (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: pwsh
-        run: |
-          cd target/${{ matrix.target }}/release
-          $hash = (Get-FileHash ${{ matrix.artifact_name }} -Algorithm SHA256).Hash.ToLower()
-          "$hash  ${{ matrix.artifact_name }}" | Out-File -Encoding ASCII ${{ matrix.asset_name }}.sha256
-          Get-Content ${{ matrix.asset_name }}.sha256
-
-      - name: Create tarball (Linux and macOS)
-        if: matrix.os != 'windows-latest'
-        run: |
-          cd target/${{ matrix.target }}/release
+          # Create tarball with checksum
           tar czf ${{ matrix.asset_name }}.tar.gz ${{ matrix.artifact_name }}
           sha256sum ${{ matrix.asset_name }}.tar.gz > ${{ matrix.asset_name }}.tar.gz.sha256
 
-      - name: Create zip (Windows)
+      - name: Package release (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
+        working-directory: target/${{ matrix.target }}/release
         run: |
-          cd target/${{ matrix.target }}/release
+          # Generate checksums
+          $hash = (Get-FileHash ${{ matrix.artifact_name }} -Algorithm SHA256).Hash.ToLower()
+          "$hash  ${{ matrix.artifact_name }}" | Out-File -Encoding ASCII ${{ matrix.asset_name }}.sha256
+
+          # Create zip with checksum
           Compress-Archive -Path ${{ matrix.artifact_name }} -DestinationPath ${{ matrix.asset_name }}.zip
           $hash = (Get-FileHash ${{ matrix.asset_name }}.zip -Algorithm SHA256).Hash.ToLower()
           "$hash  ${{ matrix.asset_name }}.zip" | Out-File -Encoding ASCII ${{ matrix.asset_name }}.zip.sha256
 
-      - name: Upload tarball
-        if: matrix.os != 'windows-latest'
-        uses: actions/upload-release-asset@v1
+      - name: Upload release assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: target/${{ matrix.target }}/release/${{ matrix.asset_name }}.tar.gz
-          asset_name: ${{ matrix.asset_name }}.tar.gz
-          asset_content_type: application/gzip
+        working-directory: target/${{ matrix.target }}/release
+        run: |
+          gh release upload ${{ github.ref_name }} \
+            ${{ matrix.asset_name }} \
+            ${{ matrix.asset_name }}.sha256 \
+            ${{ matrix.asset_name }}.${{ matrix.archive_format }} \
+            ${{ matrix.asset_name }}.${{ matrix.archive_format }}.sha256 \
+            --clobber \
+            --repo ${{ github.repository }}
 
-      - name: Upload tarball checksum
-        if: matrix.os != 'windows-latest'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: target/${{ matrix.target }}/release/${{ matrix.asset_name }}.tar.gz.sha256
-          asset_name: ${{ matrix.asset_name }}.tar.gz.sha256
-          asset_content_type: text/plain
-
-      - name: Upload zip
-        if: matrix.os == 'windows-latest'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: target/${{ matrix.target }}/release/${{ matrix.asset_name }}.zip
-          asset_name: ${{ matrix.asset_name }}.zip
-          asset_content_type: application/zip
-
-      - name: Upload zip checksum
-        if: matrix.os == 'windows-latest'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: target/${{ matrix.target }}/release/${{ matrix.asset_name }}.zip.sha256
-          asset_name: ${{ matrix.asset_name }}.zip.sha256
-          asset_content_type: text/plain
-
-  # Build and publish Docker images
   publish-docker:
     name: Publish Docker Images
-    needs: [create-release, build-release]
+    needs: [ draft-release, build-release ]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -332,10 +268,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # Publish to crates.io only after successful builds
   publish-crates-io:
     name: Publish to crates.io
-    needs: [create-release, build-release]
+    needs: [ draft-release, build-release ]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -349,10 +284,9 @@ jobs:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: cargo publish --token ${CARGO_REGISTRY_TOKEN}
 
-  # Publish the draft release (makes it immutable)
   publish-release:
     name: Publish Release
-    needs: [create-release, build-release, publish-docker, publish-crates-io]
+    needs: [ draft-release, build-release, publish-docker, publish-crates-io ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -360,8 +294,4 @@ jobs:
       - name: Publish Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release edit ${{ github.ref_name }} \
-            --repo ${{ github.repository }} \
-            --draft=false
-          echo "✅ Release ${{ github.ref_name }} published and is now immutable"
+        run: gh release edit ${{ github.ref_name }} --repo ${{ github.repository }} --draft=false

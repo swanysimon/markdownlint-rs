@@ -27,6 +27,7 @@ impl Rule for MD032 {
         for (line_num, line) in lines.iter().enumerate() {
             let trimmed = line.trim_start();
             let is_list_item = is_list_line(trimmed);
+            let is_indented = !line.is_empty() && line.chars().next().unwrap().is_whitespace();
 
             if is_list_item && !in_list {
                 // Starting a list
@@ -45,8 +46,13 @@ impl Rule for MD032 {
                         });
                     }
                 }
+            } else if is_list_item && in_list {
+                // Continue in list (list item after list item)
+            } else if in_list && is_indented && !line.trim().is_empty() {
+                // Indented non-list line - this is a continuation of the list item
+                // Do nothing, stay in list
             } else if !is_list_item && in_list && !line.trim().is_empty() {
-                // Ending a list (non-blank, non-list line)
+                // Ending a list (non-blank, non-indented, non-list line)
                 in_list = false;
                 _list_end_line = line_num - 1;
 
@@ -145,5 +151,42 @@ mod tests {
         let violations = rule.check(&parser, None);
 
         assert_eq!(violations.len(), 0); // First line is OK
+    }
+
+    #[test]
+    fn test_wrapped_list_item() {
+        // List items that wrap to multiple lines should not be treated as list ending
+        let content = "Text before\n\n* This is a long list item\n  that wraps to the next line\n* Item 2\n\nText after";
+        let parser = MarkdownParser::new(content);
+        let rule = MD032;
+        let violations = rule.check(&parser, None);
+
+        // Should have 0 violations - the wrapped line is a continuation, not a new paragraph
+        assert_eq!(violations.len(), 0);
+    }
+
+    #[test]
+    fn test_multiple_wrapped_lines() {
+        // Multiple continuation lines in a single list item
+        let content = "Text\n\n* Item with multiple\n  lines of text\n  spanning across\n  multiple lines\n* Item 2\n\nText after";
+        let parser = MarkdownParser::new(content);
+        let rule = MD032;
+        let violations = rule.check(&parser, None);
+
+        // Should have 0 violations
+        assert_eq!(violations.len(), 0);
+    }
+
+    #[test]
+    fn test_wrapped_with_nested_list() {
+        // Wrapped items with nested list
+        let content =
+            "Text\n\n* Item 1 that\n  wraps across lines\n  * Nested item\n* Item 2\n\nText after";
+        let parser = MarkdownParser::new(content);
+        let rule = MD032;
+        let violations = rule.check(&parser, None);
+
+        // Should have 0 violations
+        assert_eq!(violations.len(), 0);
     }
 }
