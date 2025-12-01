@@ -33,37 +33,25 @@ impl<'a> MarkdownParser<'a> {
     }
 
     pub fn parse(&self) -> impl Iterator<Item = Event<'a>> + 'a {
-        let mut options = Options::empty();
-        options.insert(Options::ENABLE_TABLES);
-        options.insert(Options::ENABLE_FOOTNOTES);
-        options.insert(Options::ENABLE_STRIKETHROUGH);
-        options.insert(Options::ENABLE_TASKLISTS);
-        options.insert(Options::ENABLE_HEADING_ATTRIBUTES);
-
-        Parser::new_ext(self.content, options)
+        Parser::new_ext(self.content, Self::options())
     }
 
     pub fn parse_with_offsets(&self) -> impl Iterator<Item = (Event<'a>, Range<usize>)> {
+        Parser::new_ext(self.content, Self::options()).into_offset_iter()
+    }
+
+    fn options() -> Options {
         let mut options = Options::empty();
         options.insert(Options::ENABLE_TABLES);
         options.insert(Options::ENABLE_FOOTNOTES);
         options.insert(Options::ENABLE_STRIKETHROUGH);
         options.insert(Options::ENABLE_TASKLISTS);
         options.insert(Options::ENABLE_HEADING_ATTRIBUTES);
-
-        Parser::new_ext(self.content, options).into_offset_iter()
+        options
     }
 
     pub fn offset_to_line(&self, offset: usize) -> usize {
-        let mut current_offset = 0;
-        for (line_num, line) in self.lines.iter().enumerate() {
-            let line_len = line.len() + 1;
-            if offset < current_offset + line_len {
-                return line_num + 1;
-            }
-            current_offset += line_len;
-        }
-        self.lines.len()
+        self.offset_to_position(offset).0
     }
 
     pub fn offset_to_position(&self, offset: usize) -> (usize, usize) {

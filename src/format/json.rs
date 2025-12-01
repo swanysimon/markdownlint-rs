@@ -1,5 +1,6 @@
 use crate::format::Formatter;
 use crate::lint::LintResult;
+use crate::types::FileResult;
 use serde::Serialize;
 
 pub struct JsonFormatter {
@@ -10,6 +11,20 @@ impl JsonFormatter {
     pub fn new(pretty: bool) -> Self {
         Self { pretty }
     }
+}
+
+fn file_violations(file_result: &FileResult) -> Vec<JsonViolation> {
+    file_result
+        .violations
+        .iter()
+        .map(|violation| JsonViolation {
+            line: violation.line,
+            column: violation.column,
+            rule: violation.rule.clone(),
+            message: violation.message.clone(),
+            fixable: violation.fix.as_ref().map(|_| true),
+        })
+        .collect()
 }
 
 #[derive(Serialize)]
@@ -43,21 +58,7 @@ impl Formatter for JsonFormatter {
                 .iter()
                 .map(|file_result| JsonFile {
                     path: file_result.path.display().to_string(),
-                    violations: file_result
-                        .violations
-                        .iter()
-                        .map(|violation| JsonViolation {
-                            line: violation.line,
-                            column: violation.column,
-                            rule: violation.rule.clone(),
-                            message: violation.message.clone(),
-                            fixable: if violation.fix.is_some() {
-                                Some(true)
-                            } else {
-                                None
-                            },
-                        })
-                        .collect(),
+                    violations: file_violations(file_result),
                 })
                 .collect(),
             total_errors: result.total_errors,

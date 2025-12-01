@@ -17,28 +17,7 @@ impl FileWalker {
     }
 
     pub fn find_markdown_files(&self, root: &Path) -> Result<Vec<PathBuf>> {
-        let mut builder = WalkBuilder::new(root);
-        builder.git_ignore(self.respect_gitignore);
-        builder.git_global(self.respect_gitignore);
-        builder.git_exclude(self.respect_gitignore);
-        builder.hidden(false);
-
-        let mut files = Vec::new();
-
-        for entry in builder.build() {
-            let entry = entry.map_err(|e| {
-                MarkdownlintError::Io(std::io::Error::other(format!("Walk error: {}", e)))
-            })?;
-
-            if entry.file_type().is_some_and(|ft| ft.is_file()) {
-                let path = entry.path();
-                if is_markdown_file(path) {
-                    files.push(path.to_path_buf());
-                }
-            }
-        }
-
-        Ok(files)
+        self.walk_files(root, None)
     }
 
     pub fn find_files_with_matcher(
@@ -50,8 +29,11 @@ impl FileWalker {
             return self.find_markdown_files(root);
         }
 
-        let root = root.canonicalize().map_err(MarkdownlintError::Io)?;
+        self.walk_files(root, Some(matcher))
+    }
 
+    fn walk_files(&self, root: &Path, matcher: Option<&GlobMatcher>) -> Result<Vec<PathBuf>> {
+        let root = root.canonicalize().map_err(MarkdownlintError::Io)?;
         let mut builder = WalkBuilder::new(&root);
         builder.git_ignore(self.respect_gitignore);
         builder.git_global(self.respect_gitignore);
@@ -59,23 +41,28 @@ impl FileWalker {
         builder.hidden(false);
 
         let mut files = Vec::new();
-
         for entry in builder.build() {
             let entry = entry.map_err(|e| {
                 MarkdownlintError::Io(std::io::Error::other(format!("Walk error: {}", e)))
             })?;
+            if !(entry.file_type().is_some_and(|ft| ft.is_file())) {
+                continue;
+            }
 
-            if entry.file_type().is_some_and(|ft| ft.is_file()) {
-                let path = entry.path();
+            let path = entry.path();
+            if !is_markdown_file(path) {
+                continue;
+            }
 
+            if let Some(m) = matcher {
                 let relative_path = path.strip_prefix(&root).unwrap_or(path);
-
-                if matcher.matches(relative_path) && is_markdown_file(path) {
+                if m.matches(relative_path) {
                     files.push(path.to_path_buf());
                 }
+            } else {
+                files.push(path.to_path_buf());
             }
         }
-
         Ok(files)
     }
 }

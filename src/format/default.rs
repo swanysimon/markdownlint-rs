@@ -65,15 +65,15 @@ impl Formatter for DefaultFormatter {
         }
 
         // Summary
-        if result.total_errors > 0 {
+        if result.total_errors == 0 {
+            output.push_str("No errors found.\n");
+        } else {
             let summary = format!(
                 "Found {} error(s) across {} file(s)",
                 result.total_errors,
                 result.file_results.len()
             );
             output.push_str(&format!("{}\n", self.red(&summary)));
-        } else {
-            output.push_str("No errors found.\n");
         }
 
         output

@@ -4,6 +4,9 @@ pub enum FrontMatterType {
     Toml,
 }
 
+const YAML_FRONT_MATTER: &str = "---";
+const TOML_FRONT_MATTER: &str = "+++";
+
 #[derive(Debug, Clone)]
 pub struct FrontMatter {
     pub matter_type: FrontMatterType,
@@ -13,53 +16,40 @@ pub struct FrontMatter {
 
 pub fn detect_front_matter(content: &str) -> Option<FrontMatter> {
     let lines: Vec<&str> = content.lines().collect();
-
     if lines.is_empty() {
         return None;
     }
 
-    if lines[0] == "---" {
-        detect_yaml_front_matter(&lines)
-    } else if lines[0] == "+++" {
-        detect_toml_front_matter(&lines)
-    } else {
-        None
-    }
+    detect_filetype_front_matter(&lines, FrontMatterType::Yaml)
+        .or_else(|| detect_filetype_front_matter(&lines, FrontMatterType::Toml))
 }
 
-fn detect_yaml_front_matter(lines: &[&str]) -> Option<FrontMatter> {
-    if lines.is_empty() || lines[0] != "---" {
+fn detect_filetype_front_matter(
+    lines: &[&str],
+    matter_type: FrontMatterType,
+) -> Option<FrontMatter> {
+    if lines.is_empty() {
+        return None;
+    }
+
+    let front_matter = match matter_type {
+        FrontMatterType::Yaml => YAML_FRONT_MATTER,
+        FrontMatterType::Toml => TOML_FRONT_MATTER,
+    };
+    if lines[0] != front_matter {
         return None;
     }
 
     for (i, line) in lines.iter().enumerate().skip(1) {
-        if *line == "---" {
-            let content = lines[1..i].join("\n");
-            return Some(FrontMatter {
-                matter_type: FrontMatterType::Yaml,
-                content,
-                end_line: i + 1,
-            });
+        if *line != front_matter {
+            continue;
         }
-    }
-
-    None
-}
-
-fn detect_toml_front_matter(lines: &[&str]) -> Option<FrontMatter> {
-    if lines.is_empty() || lines[0] != "+++" {
-        return None;
-    }
-
-    for (i, line) in lines.iter().enumerate().skip(1) {
-        if *line == "+++" {
-            let content = lines[1..i].join("\n");
-            return Some(FrontMatter {
-                matter_type: FrontMatterType::Toml,
-                content,
-                end_line: i + 1,
-            });
-        }
+        let content = lines[1..i].join("\n");
+        return Some(FrontMatter {
+            matter_type,
+            content,
+            end_line: i + 1,
+        });
     }
 
     None
