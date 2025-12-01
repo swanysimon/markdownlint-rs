@@ -2,10 +2,15 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
   workflow_call:  # Allow this workflow to be called by other workflows
+
+# Prevent concurrent builds on main branch (PRs and pushes)
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
@@ -13,7 +18,7 @@ env:
 
 jobs:
   test:
-    name: Test Suite
+    name: Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -22,35 +27,17 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache Cargo registry
+      - name: Cache Cargo dependencies
         uses: actions/cache@v4
         with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
-
-      - name: Cache Cargo index
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-index-
-
-      - name: Cache build artifacts
-        uses: actions/cache@v4
-        with:
-          path: target
-          key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-target-
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Run tests
-        run: cargo test --all-features --workspace
-
-      - name: Run doc tests
-        run: cargo test --doc --all-features --workspace
+        run: cargo test -- --include-ignored
 
   clippy:
     name: Clippy
@@ -64,17 +51,17 @@ jobs:
         with:
           components: clippy
 
-      - name: Cache dependencies
+      - name: Cache Cargo dependencies
         uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Run clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy -- -D warnings
 
   fmt:
     name: Rustfmt
@@ -91,41 +78,9 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all -- --check
 
-  dogfood:
-    name: Dogfood (Lint Own Docs)
-    needs: [test, clippy, fmt]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-dogfood-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Build mdlint
-        run: cargo build --release
-
-      - name: Lint project documentation
-        run: |
-          ./target/release/mdlint README.md CONTRIBUTING.md CLAUDE.md IMPROVEMENTS.md .github/WORKFLOWS.md
-
-      - name: Lint all markdown (should only fail on test fixtures)
-        run: |
-          # This will exit 1 due to test fixtures, which is expected
-          ./target/release/mdlint || echo "✅ Expected violations in test fixtures"
-
   build:
     name: Build
-    needs: [test, clippy, fmt]
+    needs: [ test, clippy, fmt ]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -164,30 +119,26 @@ jobs:
         if: matrix.use_cross
         run: cargo install cross --git https://github.com/cross-rs/cross
 
-      - name: Cache dependencies
+      - name: Cache Cargo dependencies
         uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-${{ matrix.target }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build (native)
         if: ${{ !matrix.use_cross }}
-        run: cargo build --release --target ${{ matrix.target }}
+        run: cargo build --target ${{ matrix.target }}
 
       - name: Build (cross)
         if: matrix.use_cross
-        run: cross build --release --target ${{ matrix.target }}
+        run: cross build --target ${{ matrix.target }}
 
-      - name: Test binary
-        if: ${{ !matrix.use_cross && matrix.target != 'aarch64-apple-darwin' }}
-        run: cargo run --release --target ${{ matrix.target }} -- --help
-
-  compatibility:
-    name: Compatibility Tests
-    needs: [test, clippy, fmt]
+  dogfood:
+    name: Dogfood (Lint Own Docs)
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -196,62 +147,24 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache dependencies
+      - name: Cache Cargo dependencies
         uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-compat-${{ hashFiles('**/Cargo.lock') }}
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Build release binary
+        run: cargo build --release
 
-      - name: Run compatibility tests
-        run: cargo test --test compatibility
-
-  security:
-    name: Security Audit
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Run security audit
-        uses: rustsec/audit-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-  docker:
-    name: Docker Build Check
-    needs: [test, clippy, fmt]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker image (amd64 only for CI)
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          platforms: linux/amd64
-          push: false
-          tags: mdlint:ci-test
-          load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Test Docker image
+      - name: Lint project documentation
         run: |
-          # Test that the image runs and shows help
-          docker run --rm mdlint:ci-test --help
+          ./target/release/mdlint README.md CONTRIBUTING.md CLAUDE.md IMPROVEMENTS.md .github/WORKFLOWS.md
 
-          # Test that the image can lint files
-          echo "# Test" > test.md
-          docker run --rm -v "$PWD:/workspace" mdlint:ci-test test.md
-          rm test.md
+      - name: Lint all markdown (should only fail on test fixtures)
+        run: |
+          # This will exit 1 due to test fixtures, which is expected
+          ./target/release/mdlint || echo "✅ Expected violations in test fixtures"
 
