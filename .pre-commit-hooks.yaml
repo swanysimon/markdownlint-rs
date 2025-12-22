@@ -1,0 +1,6 @@
+- id: mdlint
+  name: Lint markdown files
+  description: "Lints markdown files and makes fixes when possible"
+  entry: mdlint --fix
+  language: rust
+  types: [markdown]
