@@ -81,6 +81,11 @@ impl Rule for MD030 {
 
             let trimmed = line.trim_start();
 
+            // Skip horizontal rules (3+ of same char: -, *, _)
+            if is_horizontal_rule(trimmed) {
+                continue;
+            }
+
             // Check unordered list markers
             if trimmed.starts_with('*') || trimmed.starts_with('+') || trimmed.starts_with('-') {
                 let marker_char = trimmed.chars().next().unwrap();
@@ -174,6 +179,26 @@ impl Rule for MD030 {
     }
 }
 
+/// Check if a line is a horizontal rule (3+ of same char: -, *, _)
+fn is_horizontal_rule(line: &str) -> bool {
+    let trimmed = line.trim();
+    if trimmed.len() < 3 {
+        return false;
+    }
+
+    let chars: Vec<char> = trimmed.chars().filter(|&c| c != ' ').collect();
+    if chars.len() < 3 {
+        return false;
+    }
+
+    let first_char = chars[0];
+    if first_char != '-' && first_char != '*' && first_char != '_' {
+        return false;
+    }
+
+    chars.iter().all(|&c| c == first_char)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -250,5 +275,28 @@ mod tests {
         let violations = rule.check(&parser, None);
 
         assert_eq!(violations.len(), 0);
+    }
+
+    #[test]
+    fn test_horizontal_rules_not_list_markers() {
+        // Horizontal rules should not trigger MD030 violations
+        let content = "# Heading\n\
+                       \n\
+                       ---\n\
+                       \n\
+                       More content\n\
+                       \n\
+                       ***\n\
+                       \n\
+                       ___\n\
+                       \n\
+                       * * *\n\
+                       \n\
+                       - - -";
+        let parser = MarkdownParser::new(content);
+        let rule = MD030;
+        let violations = rule.check(&parser, None);
+
+        assert_eq!(violations.len(), 0, "Horizontal rules should not be treated as list markers");
     }
 }
