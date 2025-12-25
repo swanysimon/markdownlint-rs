@@ -297,6 +297,10 @@ mod tests {
         let rule = MD030;
         let violations = rule.check(&parser, None);
 
-        assert_eq!(violations.len(), 0, "Horizontal rules should not be treated as list markers");
+        assert_eq!(
+            violations.len(),
+            0,
+            "Horizontal rules should not be treated as list markers"
+        );
     }
 }
