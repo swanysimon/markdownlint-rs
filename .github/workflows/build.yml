@@ -1,0 +1,129 @@
+name: Build release
+
+on:
+  workflow_call:
+    inputs:
+      release:
+        description: GitHub release to upload artifacts into
+        default: ""
+        type: string
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  build:
+    name: Build Release Binaries
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux x86_64
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: mdlint
+            asset_name: mdlint-linux-x86_64
+            archive_format: tar.gz
+
+          # Linux x86_64 (musl - static binary)
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            artifact_name: mdlint
+            asset_name: mdlint-linux-x86_64-musl
+            archive_format: tar.gz
+
+          # Linux aarch64
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            artifact_name: mdlint
+            asset_name: mdlint-linux-aarch64
+            archive_format: tar.gz
+
+          # macOS x86_64
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: mdlint
+            asset_name: mdlint-macos-x86_64
+            archive_format: tar.gz
+
+          # macOS aarch64 (Apple Silicon)
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: mdlint
+            asset_name: mdlint-macos-aarch64
+            archive_format: tar.gz
+
+          # Windows x86_64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: mdlint.exe
+            asset_name: mdlint-windows-x86_64.exe
+            archive_format: zip
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install musl tools (Linux musl only)
+        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package release (Unix)
+        if: ${{ matrix.os != 'windows-latest' }}
+        working-directory: target/${{ matrix.target }}/release
+        run: |
+          strip ${{ matrix.artifact_name }}
+
+          # Copy binary with asset name
+          cp ${{ matrix.artifact_name }} ${{ matrix.asset_name }}
+
+          # Generate checksums
+          sha256sum ${{ matrix.asset_name }} > ${{ matrix.asset_name }}.sha256
+
+          # Create tarball with checksum
+          tar czf ${{ matrix.asset_name }}.tar.gz ${{ matrix.artifact_name }}
+          sha256sum ${{ matrix.asset_name }}.tar.gz > ${{ matrix.asset_name }}.tar.gz.sha256
+
+      - name: Package release (Windows)
+        if: ${{ matrix.os == 'windows-latest' }}
+        shell: pwsh
+        working-directory: target/${{ matrix.target }}/release
+        run: |
+          # Copy binary with asset name
+          Copy-Item -Path ${{ matrix.artifact_name }} -Destination ${{ matrix.asset_name }}
+
+          # Generate checksums
+          $hash = (Get-FileHash ${{ matrix.asset_name }} -Algorithm SHA256).Hash.ToLower()
+          "$hash  ${{ matrix.asset_name }}" | Out-File -Encoding ASCII ${{ matrix.asset_name }}.sha256
+
+          # Create zip with checksum
+          Compress-Archive -Path ${{ matrix.artifact_name }} -DestinationPath ${{ matrix.asset_name }}.zip
+          $hash = (Get-FileHash ${{ matrix.asset_name }}.zip -Algorithm SHA256).Hash.ToLower()
+          "$hash  ${{ matrix.asset_name }}.zip" | Out-File -Encoding ASCII ${{ matrix.asset_name }}.zip.sha256
+
+      - name: Upload release assets
+        if: ${{ inputs.release != '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        working-directory: target/${{ matrix.target }}/release
+        shell: bash
+        run: |
+          gh release upload ${{ inputs.release }} \
+            ${{ matrix.asset_name }} \
+            ${{ matrix.asset_name }}.sha256 \
+            ${{ matrix.asset_name }}.${{ matrix.archive_format }} \
+            ${{ matrix.asset_name }}.${{ matrix.archive_format }}.sha256 \
+            --clobber \
+            --repo ${{ github.repository }}
