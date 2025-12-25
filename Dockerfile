@@ -17,7 +17,6 @@ WORKDIR /build
 
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
-COPY tests ./tests
 RUN cargo build --release --target "$(cat /rust-target)" \
     && mv "target/$(cat /rust-target)/release/mdlint" /mdlint
 

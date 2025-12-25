@@ -104,7 +104,7 @@ jobs:
   # Build and upload release binaries
   build-release:
     name: Build Release Binaries
-    needs: [ draft-release, ci ]
+    needs: draft-release
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write
@@ -232,13 +232,21 @@ jobs:
             --clobber \
             --repo ${{ github.repository }}
 
-  publish-docker:
-    name: Publish Docker Images
-    needs: [ draft-release, build-release ]
-    runs-on: ubuntu-latest
+  build-docker:
+    name: Build Docker Image (${{ matrix.platform }})
+    needs: build-release
+    runs-on: ${{ matrix.runs-on }}
     permissions:
       contents: read
       packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runs-on: ubuntu-latest
+          - platform: linux/arm64
+            runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -262,25 +270,68 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=raw,value=latest
+            type=semver,pattern={{version}}-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
+            type=raw,value=${{ matrix.platform == 'linux/amd64' && 'latest-amd64' || 'latest-arm64' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.platform }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  publish-docker:
+    name: Publish Multi-Platform Docker Manifest
+    needs: build-docker
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Create and push multi-platform manifest
+        run: |
+          IMAGE_REPO="ghcr.io/${{ github.repository }}"
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Create manifest for version tags
+          docker buildx imagetools create \
+            --tag "${IMAGE_REPO}:${VERSION}" \
+            --tag "${IMAGE_REPO}:latest" \
+            "${IMAGE_REPO}:${VERSION}-amd64" \
+            "${IMAGE_REPO}:${VERSION}-arm64"
+
+          # Also update major.minor and major tags
+          MAJOR_MINOR=$(echo "${VERSION}" | cut -d. -f1-2)
+          MAJOR=$(echo "${VERSION}" | cut -d. -f1)
+
+          docker buildx imagetools create \
+            --tag "${IMAGE_REPO}:${MAJOR_MINOR}" \
+            "${IMAGE_REPO}:${VERSION}-amd64" \
+            "${IMAGE_REPO}:${VERSION}-arm64"
+
+          docker buildx imagetools create \
+            --tag "${IMAGE_REPO}:${MAJOR}" \
+            "${IMAGE_REPO}:${VERSION}-amd64" \
+            "${IMAGE_REPO}:${VERSION}-arm64"
+
   publish-crates-io:
     name: Publish to crates.io
-    needs: [ draft-release, build-release ]
+    needs: build-release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -296,11 +347,16 @@ jobs:
 
   publish-release:
     name: Publish Release
-    needs: [ draft-release, build-release, publish-docker, publish-crates-io ]
+    needs:
+      - publish-crates-io
+      - publish-docker
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Publish Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
