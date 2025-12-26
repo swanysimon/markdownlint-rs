@@ -44,7 +44,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if gh release view ${{ github.ref_name }} --repo ${{ github.repository }} >/dev/null 2>&1; then
-            echo "❌ Error: Release ${{ steps.version.outputs.version }} already exists" >&2
+            echo "❌ Error: Release ${{ github.ref_name }} already exists" >&2
             exit 1
           fi
 
@@ -102,11 +102,11 @@ jobs:
       contents: write
     uses: ./.github/workflows/build.yml
     with:
-      release: v${{ needs.draft-release.outputs.version }}
+      release: ${{ github.ref_name }}
 
   build-docker:
     name: Build Docker Image (${{ matrix.platform }})
-    needs: build
+    needs: draft-release
     runs-on: ${{ matrix.runs-on }}
     permissions:
       contents: read
@@ -203,7 +203,7 @@ jobs:
 
   publish-crates-io:
     name: Publish to crates.io
-    needs: build
+    needs: draft-release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
