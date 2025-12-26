@@ -98,9 +98,11 @@ jobs:
   build:
     name: Build
     needs: draft-release
+    permissions:
+      contents: write
     uses: ./.github/workflows/build.yml
     with:
-      release: ${{ needs.draft-release.outputs.version }}
+      release: v${{ needs.draft-release.outputs.version }}
 
   build-docker:
     name: Build Docker Image (${{ matrix.platform }})
