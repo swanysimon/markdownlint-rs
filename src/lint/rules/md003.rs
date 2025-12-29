@@ -46,8 +46,8 @@ impl Rule for MD003 {
                 } else {
                     Some(HeadingStyle::Atx)
                 }
-            } else if line_num + 1 < parser.lines().len() {
-                // Check for setext (next line is === or ---)
+            } else if !trimmed.is_empty() && line_num + 1 < parser.lines().len() {
+                // Check for setext (current line is heading text, next line is === or ---)
                 let next_line = parser.lines()[line_num + 1];
                 let is_setext_underline =
                     (next_line.chars().all(|c| c == '=' || c.is_whitespace())
@@ -160,5 +160,16 @@ mod tests {
         let violations = rule.check(&parser, None);
 
         assert_eq!(violations.len(), 0); // Both setext style
+    }
+
+    #[test]
+    fn test_horizontal_rules_not_flagged() {
+        // Horizontal rules (---) after blank lines should not be detected as setext headings
+        let content = "# Heading 1\n\n---\n\nContent here.\n\n***\n\nMore content.";
+        let parser = MarkdownParser::new(content);
+        let rule = MD003;
+        let violations = rule.check(&parser, None);
+
+        assert_eq!(violations.len(), 0); // HR is not a heading
     }
 }
