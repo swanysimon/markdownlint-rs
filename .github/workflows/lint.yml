@@ -54,14 +54,8 @@ jobs:
       - name: Build release binary
         run: cargo build --release
 
-      - name: Lint project documentation
-        run: |
-          ./target/release/mdlint README.md CONTRIBUTING.md CLAUDE.md IMPROVEMENTS.md .github/WORKFLOWS.md
-
-      - name: Lint all markdown (should only fail on test fixtures)
-        run: |
-          # This will exit 1 due to test fixtures, which is expected
-          ./target/release/mdlint || echo "✅ Expected violations in test fixtures"
+      - name: Lint all markdown files
+        run: ./target/release/mdlint '**/*.md'
 
   fmt:
     name: Rustfmt
@@ -98,5 +92,5 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Run tests
-        run: cargo test -- --include-ignored
+        run: cargo test --features compatibility-tests
 

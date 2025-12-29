@@ -39,6 +39,9 @@ thiserror = "1.0"
 [dev-dependencies]
 tempfile = "3.14"
 
+[features]
+compatibility-tests = []
+
 [profile.release]
 opt-level = 3
 lto = true
