@@ -1,6 +1,7 @@
 use crate::lint::rule::Rule;
 use crate::markdown::MarkdownParser;
 use crate::types::Violation;
+use pulldown_cmark::{Event, Tag};
 use regex::Regex;
 use serde_json::Value;
 
@@ -22,14 +23,45 @@ impl Rule for MD011 {
     fn check(&self, parser: &MarkdownParser, _config: Option<&Value>) -> Vec<Violation> {
         let mut violations = Vec::new();
 
+        // Track code blocks to exclude them from checking
+        let mut code_block_lines = std::collections::HashSet::new();
+        let mut in_code_block = false;
+
+        for (event, range) in parser.parse_with_offsets() {
+            match event {
+                Event::Start(Tag::CodeBlock(_)) => {
+                    in_code_block = true;
+                }
+                Event::End(Tag::CodeBlock(_)) => {
+                    in_code_block = false;
+                }
+                Event::Text(_) if in_code_block => {
+                    // Mark all lines that this text event spans
+                    let start_line = parser.offset_to_line(range.start);
+                    let end_line = parser.offset_to_line(range.end.saturating_sub(1));
+                    for line in start_line..=end_line {
+                        code_block_lines.insert(line);
+                    }
+                }
+                _ => {}
+            }
+        }
+
         // Pattern for reversed link syntax: (text)[url]
         // Match opening paren, non-empty content, closing paren, opening bracket, content, closing bracket
         let re = Regex::new(r"\([^)]+\)\[[^\]]+\]").unwrap();
 
         for (line_num, line) in parser.lines().iter().enumerate() {
+            let line_number = line_num + 1;
+
+            // Skip code blocks
+            if code_block_lines.contains(&line_number) {
+                continue;
+            }
+
             for m in re.find_iter(line) {
                 violations.push(Violation {
-                    line: line_num + 1,
+                    line: line_number,
                     column: Some(m.start() + 1),
                     rule: self.name().to_string(),
                     message: "Reversed link syntax (found '(text)[url]', should be '[text](url)')"
@@ -101,5 +133,25 @@ mod tests {
         let violations = rule.check(&parser, None);
 
         assert_eq!(violations.len(), 0);
+    }
+
+    #[test]
+    fn test_code_block_not_flagged() {
+        let content = r#"# Code Example
+
+```python
+result = function(param)[index]
+data = array(0)[key]
+```
+
+This (is)[wrong] though.
+"#;
+        let parser = MarkdownParser::new(content);
+        let rule = MD011;
+        let violations = rule.check(&parser, None);
+
+        // Should only flag the actual reversed link, not code
+        assert_eq!(violations.len(), 1);
+        assert_eq!(violations[0].line, 8);
     }
 }
