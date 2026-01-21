@@ -1,10 +1,149 @@
 use crate::lint::rule::Rule;
 use crate::markdown::MarkdownParser;
 use crate::types::Violation;
-use regex::Regex;
+use pulldown_cmark::Event;
 use serde_json::Value;
 
 pub struct MD037;
+
+impl MD037 {
+    fn check_pattern(
+        text: &str,
+        base_offset: usize,
+        marker: &str,
+        parser: &MarkdownParser,
+        violations: &mut Vec<Violation>,
+    ) {
+        let marker_len = marker.len();
+        let open_pattern = format!("{} ", marker);
+        let close_pattern = format!(" {}", marker);
+
+        let mut offset = 0;
+        while let Some(pos) = text[offset..].find(&open_pattern) {
+            let start_pos = offset + pos;
+            let search_start = start_pos + marker_len + 1; // After "marker "
+
+            if let Some(end_offset) = text[search_start..].find(&close_pattern) {
+                let end_pos = search_start + end_offset;
+                let between = &text[search_start..end_pos];
+
+                // Make sure there are no emphasis markers in between (prevents matching across blocks)
+                if !between.contains(marker) {
+                    // Found opening marker with space
+                    let abs_start = base_offset + start_pos;
+                    let (line, col) = parser.offset_to_position(abs_start);
+                    violations.push(Violation {
+                        line,
+                        column: Some(col),
+                        rule: "MD037".to_string(),
+                        message: "Spaces inside emphasis markers".to_string(),
+                        fix: None,
+                    });
+
+                    // Found closing marker with space
+                    let abs_end = base_offset + end_pos;
+                    let (end_line, end_col) = parser.offset_to_position(abs_end);
+                    violations.push(Violation {
+                        line: end_line,
+                        column: Some(end_col),
+                        rule: "MD037".to_string(),
+                        message: "Spaces inside emphasis markers".to_string(),
+                        fix: None,
+                    });
+                }
+            }
+            offset = start_pos + 1;
+        }
+    }
+
+    fn check_single_marker_pattern(
+        text: &str,
+        base_offset: usize,
+        marker: &str,
+        parser: &MarkdownParser,
+        violations: &mut Vec<Violation>,
+    ) {
+        let open_pattern = format!("{} ", marker);
+        let close_pattern = format!(" {}", marker);
+        let double_marker = marker.repeat(2);
+
+        let mut offset = 0;
+        while let Some(pos) = text[offset..].find(&open_pattern) {
+            let start_pos = offset + pos;
+
+            // Check if this is part of a double marker (e.g., ** when looking for *)
+            let before = if start_pos > 0 {
+                &text[start_pos.saturating_sub(1)..start_pos]
+            } else {
+                ""
+            };
+            let after_marker = start_pos + marker.len();
+            let after = if after_marker + 1 < text.len() {
+                &text[after_marker + 1..after_marker + 2]
+            } else {
+                ""
+            };
+
+            // Skip if this is part of a double marker
+            if before == marker || after == marker {
+                offset = start_pos + 1;
+                continue;
+            }
+
+            let search_start = start_pos + marker.len() + 1; // After "marker "
+
+            if let Some(end_offset) = text[search_start..].find(&close_pattern) {
+                let end_pos = search_start + end_offset;
+                let between = &text[search_start..end_pos];
+
+                // Make sure there are no markers in between
+                if !between.contains(marker) && !between.contains(&double_marker) {
+                    // Check the closing marker isn't part of a double marker
+                    let before_close = end_pos.saturating_sub(1);
+                    let after_close_marker = end_pos + marker.len() + 1;
+                    let before_close_char = if before_close < search_start {
+                        ""
+                    } else {
+                        &text[before_close..before_close + 1]
+                    };
+                    let after_close_char = if after_close_marker < text.len() {
+                        &text[after_close_marker..after_close_marker + 1]
+                    } else {
+                        ""
+                    };
+
+                    if before_close_char == marker || after_close_char == marker {
+                        offset = start_pos + 1;
+                        continue;
+                    }
+
+                    // Found opening marker with space
+                    let abs_start = base_offset + start_pos;
+                    let (line, col) = parser.offset_to_position(abs_start);
+                    violations.push(Violation {
+                        line,
+                        column: Some(col),
+                        rule: "MD037".to_string(),
+                        message: "Spaces inside emphasis markers".to_string(),
+                        fix: None,
+                    });
+
+                    // Found closing marker with space
+                    let abs_end = base_offset + end_pos;
+                    let (end_line, end_col) = parser.offset_to_position(abs_end);
+                    violations.push(Violation {
+                        line: end_line,
+                        column: Some(end_col),
+                        rule: "MD037".to_string(),
+                        message: "Spaces inside emphasis markers".to_string(),
+                        fix: None,
+                    });
+                }
+            }
+            offset = start_pos + 1;
+        }
+    }
+}
 
 impl Rule for MD037 {
     fn name(&self) -> &str {
@@ -22,133 +161,33 @@ impl Rule for MD037 {
     fn check(&self, parser: &MarkdownParser, _config: Option<&Value>) -> Vec<Violation> {
         let mut violations = Vec::new();
 
-        // Get byte ranges that are in code (more precise than line numbers)
+        // Emphasis with spaces inside is not parsed as emphasis by pulldown-cmark,
+        // so we need to find these patterns in Text events (but not in code)
+        let events: Vec<_> = parser.parse_with_offsets().collect();
         let code_ranges = parser.get_code_ranges();
 
-        // Helper function to check if a position is within code
-        let is_in_code = |line_num: usize, byte_offset: usize| -> bool {
-            let absolute_offset = parser.line_offset_to_absolute(line_num, byte_offset);
-            code_ranges
-                .iter()
-                .any(|range| range.contains(&absolute_offset))
-        };
+        for (event, range) in events.iter() {
+            if let Event::Text(text) = event {
+                let text_str = text.as_ref();
+                let offset = range.start;
 
-        // Regex patterns to detect spaces inside emphasis markers
-        let strong_asterisk = Regex::new(r"\*\* .+? \*\*").unwrap(); // ** text **
-        let strong_underscore = Regex::new(r"__ .+? __").unwrap(); // __ text __
-        let em_asterisk = Regex::new(r"\* .+? \*").unwrap(); // * text *
-        let em_underscore = Regex::new(r"_ .+? _").unwrap(); // _ text _
-
-        for (line_num, line) in parser.lines().iter().enumerate() {
-            let line_number = line_num + 1;
-
-            // Check for ** text **
-            for mat in strong_asterisk.find_iter(line) {
-                // Skip if this match is inside code
-                if is_in_code(line_number, mat.start()) {
+                // Skip if this text is inside code
+                let in_code = code_ranges.iter().any(|r| r.contains(&offset));
+                if in_code {
                     continue;
                 }
-                // Report violation for opening marker (space after **)
-                violations.push(Violation {
-                    line: line_number,
-                    column: Some(mat.start() + 1),
-                    rule: self.name().to_string(),
-                    message: "Spaces inside emphasis markers".to_string(),
-                    fix: None,
-                });
-                // Report violation for closing marker (space before **)
-                violations.push(Violation {
-                    line: line_number,
-                    column: Some(mat.end() - 2), // Position of closing **
-                    rule: self.name().to_string(),
-                    message: "Spaces inside emphasis markers".to_string(),
-                    fix: None,
-                });
-            }
 
-            // Check for __ text __
-            for mat in strong_underscore.find_iter(line) {
-                // Skip if this match is inside code
-                if is_in_code(line_number, mat.start()) {
-                    continue;
-                }
-                // Report violation for opening marker
-                violations.push(Violation {
-                    line: line_number,
-                    column: Some(mat.start() + 1),
-                    rule: self.name().to_string(),
-                    message: "Spaces inside emphasis markers".to_string(),
-                    fix: None,
-                });
-                // Report violation for closing marker
-                violations.push(Violation {
-                    line: line_number,
-                    column: Some(mat.end() - 2),
-                    rule: self.name().to_string(),
-                    message: "Spaces inside emphasis markers".to_string(),
-                    fix: None,
-                });
-            }
+                // Check for ** X ** pattern (strong with spaces)
+                Self::check_pattern(text_str, offset, "**", parser, &mut violations);
 
-            // Check for * text * (but avoid ** text **)
-            for mat in em_asterisk.find_iter(line) {
-                // Skip if this match is inside code
-                if is_in_code(line_number, mat.start()) {
-                    continue;
-                }
-                // Make sure it's not part of **
-                let before_pos = mat.start();
-                let after_pos = mat.end();
-                let is_strong = (before_pos > 0 && line.chars().nth(before_pos - 1) == Some('*'))
-                    || (after_pos < line.len() && line.chars().nth(after_pos) == Some('*'));
+                // Check for __ X __ pattern (strong with underscores)
+                Self::check_pattern(text_str, offset, "__", parser, &mut violations);
 
-                if !is_strong {
-                    // Report violations for both opening and closing markers
-                    violations.push(Violation {
-                        line: line_number,
-                        column: Some(mat.start() + 1),
-                        rule: self.name().to_string(),
-                        message: "Spaces inside emphasis markers".to_string(),
-                        fix: None,
-                    });
-                    violations.push(Violation {
-                        line: line_number,
-                        column: Some(mat.end()),
-                        rule: self.name().to_string(),
-                        message: "Spaces inside emphasis markers".to_string(),
-                        fix: None,
-                    });
-                }
-            }
+                // Check for * X * pattern (emphasis with spaces) - but avoid matching inside **
+                Self::check_single_marker_pattern(text_str, offset, "*", parser, &mut violations);
 
-            // Check for _ text _ (but avoid __ text __)
-            for mat in em_underscore.find_iter(line) {
-                // Skip if this match is inside code
-                if is_in_code(line_number, mat.start()) {
-                    continue;
-                }
-                let before_pos = mat.start();
-                let after_pos = mat.end();
-                let is_strong = (before_pos > 0 && line.chars().nth(before_pos - 1) == Some('_'))
-                    || (after_pos < line.len() && line.chars().nth(after_pos) == Some('_'));
-
-                if !is_strong {
-                    // Report violations for both opening and closing markers
-                    violations.push(Violation {
-                        line: line_number,
-                        column: Some(mat.start() + 1),
-                        rule: self.name().to_string(),
-                        message: "Spaces inside emphasis markers".to_string(),
-                        fix: None,
-                    });
-                    violations.push(Violation {
-                        line: line_number,
-                        column: Some(mat.end()),
-                        rule: self.name().to_string(),
-                        message: "Spaces inside emphasis markers".to_string(),
-                        fix: None,
-                    });
-                }
+                // Check for _ X _ pattern (emphasis with underscores) - but avoid matching inside __
+                Self::check_single_marker_pattern(text_str, offset, "_", parser, &mut violations);
             }
         }
 
@@ -234,6 +273,28 @@ mod tests {
         let violations = rule.check(&parser, None);
 
         // Should not flag asterisks in code as emphasis markers
+        assert_eq!(violations.len(), 0);
+    }
+
+    #[test]
+    fn test_adjacent_emphasis_blocks() {
+        let content = "**CASL** or **Permify**: Attribute-based access control";
+        let parser = MarkdownParser::new(content);
+        let rule = MD037;
+        let violations = rule.check(&parser, None);
+
+        // Should not match across emphasis blocks (** or ** is not a single emphasis)
+        assert_eq!(violations.len(), 0);
+    }
+
+    #[test]
+    fn test_multiple_bold_words() {
+        let content = "Use **bold** and **more bold** text.";
+        let parser = MarkdownParser::new(content);
+        let rule = MD037;
+        let violations = rule.check(&parser, None);
+
+        // Should not flag correctly formatted adjacent bold sections
         assert_eq!(violations.len(), 0);
     }
 }
