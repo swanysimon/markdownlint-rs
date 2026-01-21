@@ -1,4 +1,5 @@
 use pulldown_cmark::{Event, Options, Parser, Tag};
+use std::collections::HashSet;
 use std::ops::Range;
 
 pub struct MarkdownParser<'a> {
@@ -65,6 +66,97 @@ impl<'a> MarkdownParser<'a> {
             current_offset += line_len;
         }
         (self.lines.len(), 1)
+    }
+
+    /// Returns a set of line numbers that are inside code blocks or inline code.
+    /// This is useful for rules that should ignore code content.
+    ///
+    /// Note: For inline code, this marks the entire line as code. For more precise
+    /// detection, use `get_code_ranges()` instead.
+    pub fn get_code_line_numbers(&self) -> HashSet<usize> {
+        let mut code_lines = HashSet::new();
+        let mut in_code_block = false;
+
+        for (event, range) in self.parse_with_offsets() {
+            match event {
+                Event::Start(Tag::CodeBlock(_)) => {
+                    in_code_block = true;
+                    // Add all lines in this code block
+                    let start_line = self.offset_to_line(range.start);
+                    let end_line = self.offset_to_line(range.end);
+                    for line in start_line..=end_line {
+                        code_lines.insert(line);
+                    }
+                }
+                Event::End(Tag::CodeBlock(_)) => {
+                    in_code_block = false;
+                }
+                Event::Code(_) => {
+                    // For inline code, we mark the whole line as code
+                    // This is conservative but simpler than tracking ranges
+                    let start_line = self.offset_to_line(range.start);
+                    let end_line = self.offset_to_line(range.end);
+                    for line in start_line..=end_line {
+                        code_lines.insert(line);
+                    }
+                }
+                _ => {
+                    // If we're in a code block, mark these lines too
+                    if in_code_block {
+                        let start_line = self.offset_to_line(range.start);
+                        let end_line = self.offset_to_line(range.end);
+                        for line in start_line..=end_line {
+                            code_lines.insert(line);
+                        }
+                    }
+                }
+            }
+        }
+
+        code_lines
+    }
+
+    /// Returns a vector of byte ranges that are inside code (blocks or inline).
+    /// This is more precise than `get_code_line_numbers()` for inline code.
+    pub fn get_code_ranges(&self) -> Vec<Range<usize>> {
+        let mut code_ranges = Vec::new();
+        let mut in_code_block = false;
+        let mut code_block_start = 0;
+
+        for (event, range) in self.parse_with_offsets() {
+            match event {
+                Event::Start(Tag::CodeBlock(_)) => {
+                    in_code_block = true;
+                    code_block_start = range.start;
+                }
+                Event::End(Tag::CodeBlock(_)) => {
+                    if in_code_block {
+                        code_ranges.push(code_block_start..range.end);
+                        in_code_block = false;
+                    }
+                }
+                Event::Code(_) => {
+                    // Inline code span - add its byte range
+                    code_ranges.push(range);
+                }
+                _ => {}
+            }
+        }
+
+        code_ranges
+    }
+
+    /// Converts a byte offset within a line to an absolute byte offset in the content.
+    /// line_num is 1-indexed, byte_offset_in_line is 0-indexed from start of line.
+    pub fn line_offset_to_absolute(&self, line_num: usize, byte_offset_in_line: usize) -> usize {
+        let mut current_offset = 0;
+        for (i, line) in self.lines.iter().enumerate() {
+            if i + 1 == line_num {
+                return current_offset + byte_offset_in_line;
+            }
+            current_offset += line.len() + 1; // +1 for newline
+        }
+        current_offset
     }
 
     pub fn is_heading(&self, event: &Event) -> bool {
@@ -159,5 +251,78 @@ mod tests {
         assert!(has_heading);
         assert!(has_code);
         assert!(has_list);
+    }
+
+    #[test]
+    fn test_code_line_numbers_fenced() {
+        let content = "Normal text\n\n```sql\nSELECT * FROM table_name\nWHERE user_id = 123\n```\n\nMore text";
+        let parser = MarkdownParser::new(content);
+        let code_lines = parser.get_code_line_numbers();
+
+        // Lines 3-6 should be marked as code (the ``` markers and content)
+        assert!(
+            code_lines.contains(&3),
+            "Line 3 (opening ```) should be code"
+        );
+        assert!(
+            code_lines.contains(&4),
+            "Line 4 (code content) should be code"
+        );
+        assert!(
+            code_lines.contains(&5),
+            "Line 5 (code content) should be code"
+        );
+        assert!(
+            code_lines.contains(&6),
+            "Line 6 (closing ```) should be code"
+        );
+
+        // Other lines should not be marked
+        assert!(!code_lines.contains(&1), "Line 1 should not be code");
+        assert!(!code_lines.contains(&2), "Line 2 should not be code");
+        assert!(!code_lines.contains(&8), "Line 8 should not be code");
+    }
+
+    #[test]
+    fn test_code_line_numbers_inline() {
+        let content = "This is `inline_code_with_underscores` in text";
+        let parser = MarkdownParser::new(content);
+        let code_lines = parser.get_code_line_numbers();
+
+        // Line 1 should be marked because it contains inline code
+        assert!(
+            code_lines.contains(&1),
+            "Line with inline code should be marked"
+        );
+    }
+
+    #[test]
+    fn test_code_line_numbers_mixed() {
+        let content =
+            "Normal text\n\nText with `inline_code` here\n\n```\nCode block\n```\n\nFinal text";
+        let parser = MarkdownParser::new(content);
+        let code_lines = parser.get_code_line_numbers();
+
+        // Line 3 has inline code
+        assert!(
+            code_lines.contains(&3),
+            "Line with inline code should be marked"
+        );
+
+        // Lines 5-7 are in code block
+        assert!(code_lines.contains(&5), "Code block line should be marked");
+        assert!(code_lines.contains(&6), "Code block line should be marked");
+        assert!(code_lines.contains(&7), "Code block line should be marked");
+
+        // Lines 1, 2, 9 are normal text
+        assert!(
+            !code_lines.contains(&1),
+            "Normal text line should not be marked"
+        );
+        assert!(!code_lines.contains(&2), "Empty line should not be marked");
+        assert!(
+            !code_lines.contains(&9),
+            "Normal text line should not be marked"
+        );
     }
 }
