@@ -42,7 +42,7 @@ impl Rule for MD041 {
         for (event, range) in parser.parse_with_offsets() {
             // Skip blank/empty events at start
             match event {
-                Event::Start(Tag::Heading(level, _, _)) if !found_first_heading => {
+                Event::Start(Tag::Heading { level, .. }) if !found_first_heading => {
                     let heading_line = parser.offset_to_line(range.start);
 
                     if level != expected_level {

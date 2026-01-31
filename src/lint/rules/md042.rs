@@ -23,9 +23,9 @@ impl Rule for MD042 {
         let mut violations = Vec::new();
 
         for (event, range) in parser.parse_with_offsets() {
-            if let Event::Start(Tag::Link(_, url, _)) = event {
+            if let Event::Start(Tag::Link { dest_url, .. }) = event {
                 // Check if the destination URL is empty or only contains "#"
-                let url_str = url.to_string();
+                let url_str = dest_url.to_string();
                 if url_str.is_empty() || url_str == "#" {
                     let line = parser.offset_to_line(range.start);
                     violations.push(Violation {

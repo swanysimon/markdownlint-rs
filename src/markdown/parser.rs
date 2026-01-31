@@ -1,4 +1,4 @@
-use pulldown_cmark::{Event, Options, Parser, Tag};
+use pulldown_cmark::{Event, Options, Parser, Tag, TagEnd};
 use std::collections::HashSet;
 use std::ops::Range;
 
@@ -88,7 +88,7 @@ impl<'a> MarkdownParser<'a> {
                         code_lines.insert(line);
                     }
                 }
-                Event::End(Tag::CodeBlock(_)) => {
+                Event::End(TagEnd::CodeBlock) => {
                     in_code_block = false;
                 }
                 Event::Code(_) => {
@@ -129,7 +129,7 @@ impl<'a> MarkdownParser<'a> {
                     in_code_block = true;
                     code_block_start = range.start;
                 }
-                Event::End(Tag::CodeBlock(_)) => {
+                Event::End(TagEnd::CodeBlock) => {
                     if in_code_block {
                         code_ranges.push(code_block_start..range.end);
                         in_code_block = false;

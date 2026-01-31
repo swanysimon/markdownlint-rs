@@ -1,7 +1,7 @@
 use crate::lint::rule::Rule;
 use crate::markdown::MarkdownParser;
 use crate::types::Violation;
-use pulldown_cmark::{Event, HeadingLevel, Tag};
+use pulldown_cmark::{Event, HeadingLevel, Tag, TagEnd};
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -37,7 +37,7 @@ impl Rule for MD024 {
 
         for (event, range) in parser.parse_with_offsets() {
             match event {
-                Event::Start(Tag::Heading(level, _, _)) => {
+                Event::Start(Tag::Heading { level, .. }) => {
                     in_heading = true;
                     current_heading_text.clear();
                     current_heading_line = parser.offset_to_line(range.start);
@@ -46,7 +46,7 @@ impl Rule for MD024 {
                 Event::Text(text) if in_heading => {
                     current_heading_text.push_str(&text);
                 }
-                Event::End(Tag::Heading(_, _, _)) if in_heading => {
+                Event::End(TagEnd::Heading(_)) if in_heading => {
                     let text = current_heading_text.trim().to_string();
 
                     if siblings_only {

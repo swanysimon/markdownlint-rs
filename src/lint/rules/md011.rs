@@ -1,7 +1,7 @@
 use crate::lint::rule::Rule;
 use crate::markdown::MarkdownParser;
 use crate::types::Violation;
-use pulldown_cmark::{Event, Tag};
+use pulldown_cmark::{Event, Tag, TagEnd};
 use regex::Regex;
 use serde_json::Value;
 
@@ -32,7 +32,7 @@ impl Rule for MD011 {
                 Event::Start(Tag::CodeBlock(_)) => {
                     in_code_block = true;
                 }
-                Event::End(Tag::CodeBlock(_)) => {
+                Event::End(TagEnd::CodeBlock) => {
                     in_code_block = false;
                 }
                 Event::Text(_) if in_code_block => {

@@ -24,7 +24,7 @@ impl Rule for MD001 {
         let mut last_level: Option<u8> = None;
 
         for (event, range) in parser.parse_with_offsets() {
-            if let Event::Start(Tag::Heading(level, _, _)) = event {
+            if let Event::Start(Tag::Heading { level, .. }) = event {
                 let current_level = heading_level_to_u8(level);
                 let line = parser.offset_to_line(range.start);
 

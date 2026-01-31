@@ -24,7 +24,7 @@ impl Rule for MD025 {
         let mut first_h1_line: Option<usize> = None;
 
         for (event, range) in parser.parse_with_offsets() {
-            if let Event::Start(Tag::Heading(HeadingLevel::H1, _, _)) = event {
+            if let Event::Start(Tag::Heading { level: HeadingLevel::H1, .. }) = event {
                 let line = parser.offset_to_line(range.start);
 
                 if let Some(first_line) = first_h1_line {

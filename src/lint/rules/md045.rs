@@ -1,7 +1,7 @@
 use crate::lint::rule::Rule;
 use crate::markdown::MarkdownParser;
 use crate::types::Violation;
-use pulldown_cmark::{Event, Tag};
+use pulldown_cmark::{Event, Tag, TagEnd};
 use serde_json::Value;
 
 pub struct MD045;
@@ -35,7 +35,7 @@ impl Rule for MD045 {
                 Event::Text(text) if in_image => {
                     alt_text.push_str(&text);
                 }
-                Event::End(Tag::Image { .. }) if in_image => {
+                Event::End(TagEnd::Image) if in_image => {
                     // Only report if alt_text is completely empty (not just whitespace)
                     if alt_text.is_empty() {
                         violations.push(Violation {

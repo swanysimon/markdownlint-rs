@@ -1,7 +1,7 @@
 use crate::lint::rule::Rule;
 use crate::markdown::MarkdownParser;
 use crate::types::{Fix, Violation};
-use pulldown_cmark::{CodeBlockKind, Event, Tag};
+use pulldown_cmark::{CodeBlockKind, Event, Tag, TagEnd};
 use serde_json::Value;
 
 pub struct MD014;
@@ -41,7 +41,7 @@ impl Rule for MD014 {
                 Event::Text(text) if in_shell_code_block => {
                     code_block_lines.push(text.to_string());
                 }
-                Event::End(Tag::CodeBlock(_)) if in_shell_code_block => {
+                Event::End(TagEnd::CodeBlock) if in_shell_code_block => {
                     // Check if all non-empty lines start with $
                     let code_text = code_block_lines.join("");
                     let lines: Vec<&str> = code_text.lines().collect();

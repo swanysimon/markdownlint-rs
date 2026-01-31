@@ -1,7 +1,7 @@
 use crate::lint::rule::Rule;
 use crate::markdown::MarkdownParser;
 use crate::types::Violation;
-use pulldown_cmark::{Event, Tag};
+use pulldown_cmark::{Event, Tag, TagEnd};
 use serde_json::Value;
 
 pub struct MD059;
@@ -40,7 +40,7 @@ impl Rule for MD059 {
 
         for (event, range) in parser.parse_with_offsets() {
             match event {
-                Event::Start(Tag::Link(_, _, _)) => {
+                Event::Start(Tag::Link { .. }) => {
                     in_link = true;
                     link_text.clear();
                     link_line = parser.offset_to_line(range.start);
@@ -48,7 +48,7 @@ impl Rule for MD059 {
                 Event::Text(text) if in_link => {
                     link_text.push_str(&text);
                 }
-                Event::End(Tag::Link(_, _, _)) if in_link => {
+                Event::End(TagEnd::Link) if in_link => {
                     let text_lower = link_text.trim().to_lowercase();
 
                     // Check if link text is non-descriptive

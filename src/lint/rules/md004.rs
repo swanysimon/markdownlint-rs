@@ -1,7 +1,7 @@
 use crate::lint::rule::Rule;
 use crate::markdown::MarkdownParser;
 use crate::types::Violation;
-use pulldown_cmark::{Event, Tag};
+use pulldown_cmark::{Event, Tag, TagEnd};
 use serde_json::Value;
 
 pub struct MD004;
@@ -41,7 +41,7 @@ impl Rule for MD004 {
                 Event::Start(Tag::CodeBlock(_)) => {
                     in_code_block = true;
                 }
-                Event::End(Tag::CodeBlock(_)) => {
+                Event::End(TagEnd::CodeBlock) => {
                     in_code_block = false;
                 }
                 Event::Text(_) if in_code_block => {
@@ -185,7 +185,7 @@ mod tests {
                 Event::Start(Tag::CodeBlock(_)) => {
                     in_code_block = true;
                 }
-                Event::End(Tag::CodeBlock(_)) => {
+                Event::End(TagEnd::CodeBlock) => {
                     in_code_block = false;
                 }
                 Event::Text(_) if in_code_block => {

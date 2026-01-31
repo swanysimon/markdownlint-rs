@@ -1,7 +1,7 @@
 use crate::lint::rule::Rule;
 use crate::markdown::MarkdownParser;
 use crate::types::{Fix, Violation};
-use pulldown_cmark::{CodeBlockKind, Event, Tag};
+use pulldown_cmark::{CodeBlockKind, Event, Tag, TagEnd};
 use serde_json::Value;
 
 pub struct MD031;
@@ -33,7 +33,7 @@ impl Rule for MD031 {
                     let line = parser.offset_to_line(range.start);
                     code_block_starts.push(line);
                 }
-                Event::End(Tag::CodeBlock(CodeBlockKind::Fenced(_))) => {
+                Event::End(TagEnd::CodeBlock) => {
                     let line = parser.offset_to_line(range.end);
                     code_block_ends.push(line);
                 }

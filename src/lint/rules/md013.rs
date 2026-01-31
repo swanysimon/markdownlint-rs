@@ -1,7 +1,7 @@
 use crate::lint::rule::Rule;
 use crate::markdown::MarkdownParser;
 use crate::types::Violation;
-use pulldown_cmark::{Event, Tag};
+use pulldown_cmark::{Event, Tag, TagEnd};
 use serde_json::Value;
 use std::collections::HashSet;
 
@@ -60,19 +60,19 @@ impl Rule for MD013 {
             let line = parser.offset_to_line(range.start);
 
             match event {
-                Event::Start(Tag::Heading(_, _, _)) => {
+                Event::Start(Tag::Heading { .. }) => {
                     heading_lines.insert(line);
                 }
                 Event::Start(Tag::CodeBlock(_)) => {
                     in_code_block = true;
                 }
-                Event::End(Tag::CodeBlock(_)) => {
+                Event::End(TagEnd::CodeBlock) => {
                     in_code_block = false;
                 }
                 Event::Start(Tag::Table(_)) => {
                     in_table = true;
                 }
-                Event::End(Tag::Table(_)) => {
+                Event::End(TagEnd::Table) => {
                     in_table = false;
                 }
                 Event::Text(_) if in_code_block => {

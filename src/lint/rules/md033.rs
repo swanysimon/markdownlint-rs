@@ -33,29 +33,32 @@ impl Rule for MD033 {
         let mut violations = Vec::new();
 
         for (event, range) in parser.parse_with_offsets() {
-            if let Event::Html(html) = event {
-                let html_str = html.to_string();
-                let line = parser.offset_to_line(range.start);
+            // Check both Html (block) and InlineHtml events
+            let html_str = match event {
+                Event::Html(html) | Event::InlineHtml(html) => html.to_string(),
+                _ => continue,
+            };
 
-                // Skip closing tags - only report opening tags
-                if html_str.trim().starts_with("</") {
-                    continue;
-                }
+            let line = parser.offset_to_line(range.start);
 
-                // Extract tag name from HTML
-                if let Some(tag_name) = extract_tag_name(&html_str) {
-                    let is_disallowed = allowed_elements.is_empty()
-                        || !allowed_elements.contains(&tag_name.to_lowercase());
+            // Skip closing tags - only report opening tags
+            if html_str.trim().starts_with("</") {
+                continue;
+            }
 
-                    if is_disallowed {
-                        violations.push(Violation {
-                            line,
-                            column: Some(1),
-                            rule: self.name().to_string(),
-                            message: format!("Inline HTML element: <{}>", tag_name),
-                            fix: None,
-                        });
-                    }
+            // Extract tag name from HTML
+            if let Some(tag_name) = extract_tag_name(&html_str) {
+                let is_disallowed = allowed_elements.is_empty()
+                    || !allowed_elements.contains(&tag_name.to_lowercase());
+
+                if is_disallowed {
+                    violations.push(Violation {
+                        line,
+                        column: Some(1),
+                        rule: self.name().to_string(),
+                        message: format!("Inline HTML element: <{}>", tag_name),
+                        fix: None,
+                    });
                 }
             }
         }

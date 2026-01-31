@@ -1,7 +1,7 @@
 use crate::lint::rule::Rule;
 use crate::markdown::MarkdownParser;
 use crate::types::Violation;
-use pulldown_cmark::{Event, Tag};
+use pulldown_cmark::{Event, Tag, TagEnd};
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -31,14 +31,14 @@ impl Rule for MD051 {
         // First pass: collect all headings
         for (event, _range) in parser.parse_with_offsets() {
             match event {
-                Event::Start(Tag::Heading(_, _, _)) => {
+                Event::Start(Tag::Heading { .. }) => {
                     in_heading = true;
                     current_heading_text.clear();
                 }
                 Event::Text(text) if in_heading => {
                     current_heading_text.push_str(&text);
                 }
-                Event::End(Tag::Heading(_, _, _)) if in_heading => {
+                Event::End(TagEnd::Heading(_)) if in_heading => {
                     let heading_id = heading_to_id(&current_heading_text);
                     // Handle duplicate headings by tracking counts
                     let count = heading_ids.entry(heading_id.clone()).or_insert(0);
@@ -56,12 +56,12 @@ impl Rule for MD051 {
 
         for (event, range) in parser.parse_with_offsets() {
             match event {
-                Event::Start(Tag::Link(_, url, _)) => {
+                Event::Start(Tag::Link { dest_url, .. }) => {
                     in_link = true;
-                    link_url = url.to_string();
+                    link_url = dest_url.to_string();
                     link_line = parser.offset_to_line(range.start);
                 }
-                Event::End(Tag::Link(_, _, _)) if in_link => {
+                Event::End(TagEnd::Link) if in_link => {
                     // Check if URL is a fragment-only link
                     if let Some(fragment) = link_url.strip_prefix('#') {
                         // Remove the '#'

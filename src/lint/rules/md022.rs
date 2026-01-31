@@ -26,7 +26,7 @@ impl Rule for MD022 {
         // Find all heading lines using the AST
         let mut heading_lines = Vec::new();
         for (event, range) in parser.parse_with_offsets() {
-            if let Event::Start(Tag::Heading(_, _, _)) = event {
+            if let Event::Start(Tag::Heading { .. }) = event {
                 let line = parser.offset_to_line(range.start);
                 heading_lines.push(line);
             }

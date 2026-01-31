@@ -35,8 +35,8 @@ impl Rule for MD054 {
 
         for (event, range) in parser.parse_with_offsets() {
             let (is_link_or_image, link_type) = match &event {
-                Event::Start(Tag::Link(lt, _, _)) => (true, Some(lt)),
-                Event::Start(Tag::Image(lt, _, _)) => (true, Some(lt)),
+                Event::Start(Tag::Link { link_type: lt, .. }) => (true, Some(lt)),
+                Event::Start(Tag::Image { link_type: lt, .. }) => (true, Some(lt)),
                 _ => (false, None),
             };
 
