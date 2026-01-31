@@ -6,7 +6,6 @@ env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
 
-
 jobs:
   clippy:
     name: Clippy
@@ -93,4 +92,3 @@ jobs:
 
       - name: Run tests
         run: cargo test --features compatibility-tests
-
