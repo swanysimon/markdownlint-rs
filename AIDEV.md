@@ -31,7 +31,7 @@ analogous to ruff or gofmt, not markdownlint-cli2.
   from markdownlint-cli2" section. Reframe the rules table to emphasize that most violations are
   auto-fixable via `mdlint format`. Keep existing structure but make the formatter the hero.
 
-- [ ] Write FORMAT_SPEC.md that specifies exactly what canonical mdlint-formatted markdown looks like.
+- [x] Write FORMAT_SPEC.md that specifies exactly what canonical mdlint-formatted markdown looks like.
   Document every opinionated choice: ATX headings only, dash list markers, backtick code fences,
   asterisk emphasis, trailing newline, blank lines around block elements, etc. This spec is the north
   star for all formatter implementation work.
@@ -50,10 +50,10 @@ analogous to ruff or gofmt, not markdownlint-cli2.
 The formatter is the centerpiece of mdlint. It reads markdown, parses it to an AST, and emits canonical
 text. This is what makes mdlint a formatter rather than a linter with `--fix`.
 
-- [ ] Design the formatter architecture. Decide whether to: (a) emit canonical text directly from
-  pulldown-cmark events, (b) build an intermediate representation then emit, or (c) another approach.
-  Key constraint: idempotency is a hard requirement — formatting an already-formatted file must
-  produce no changes. Document the architectural decision in FORMAT_SPEC.md.
+- [ ] Design the formatter architecture. The architectural decision is documented in FORMAT_SPEC.md:
+  emit canonical text directly from pulldown-cmark events, with a small state machine to track the
+  previous block element and insert blank lines before each new block. Key constraint: idempotency
+  is a hard requirement — formatting an already-formatted file must produce no changes.
 
 - [ ] Implement `src/formatter/mod.rs` — a formatter that takes `&str` and returns a `String` in
   canonical form. Wire it into the existing `format` CLI command, which currently is a placeholder.
@@ -103,6 +103,15 @@ formatter should also be marked fixable.
 
 - [ ] Fix the task list checkbox detection bug: `[ ]` in link position is being detected as a link.
   It should be recognized as a GFM task list checkbox and excluded from link-related rules (MD011, etc.).
+
+- [ ] Fix code block exclusion bugs: MD003, MD004, MD018, MD019, MD023, MD032, MD035 do not
+  correctly skip content inside fenced code blocks. FORMAT_SPEC.md surfaces all of these —
+  running `mdlint check FORMAT_SPEC.md` is a good regression test. MD003 uses raw line scanning
+  with no code block check at all. The fix pattern is already established in MD004 (uses AST
+  events to build `code_block_lines`) but MD004's detection also has a bug (detecting asterisk
+  markers inside code examples as the "first" marker). Also: the auto-fixer applies MD018/MD019
+  fixes inside fenced code blocks — the fixer must also check whether a line is inside a code
+  block before applying a fix.
 
 - [ ] Implement inline configuration comments: parse `<!-- mdlint-disable MD001 -->`,
   `<!-- mdlint-enable MD001 -->`, and `<!-- mdlint-disable-next-line MD001 -->` HTML comments
