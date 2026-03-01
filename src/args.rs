@@ -2,7 +2,7 @@ use crate::config::loader::ConfigLoader;
 use crate::logger::log_level::LogLevel;
 use clap::builder::Styles;
 use clap::builder::styling::{AnsiColor, Effects};
-use clap::{Parser, ValueEnum, arg};
+use clap::{Parser, ValueEnum};
 use std::fmt::Display;
 use std::path::PathBuf;
 

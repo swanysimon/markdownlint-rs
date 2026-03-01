@@ -6,7 +6,7 @@ authors = ["Simon Swanson"]
 description = "A fast, flexible, configuration-based command-line interface for linting Markdown/CommonMark files"
 license = "MIT"
 repository = "https://github.com/swanysimon/markdownlint-rs"
-keywords = ["markdown", "lint", "cli", "formatter"]
+keywords = ["cli", "formatter", "lint", "markdown"]
 categories = ["command-line-utilities", "development-tools"]
 
 [[bin]]
@@ -29,6 +29,6 @@ tempfile = "3.14"
 
 [profile.release]
 opt-level = 3
+strip = true
 lto = true
 codegen-units = 1
-strip = true

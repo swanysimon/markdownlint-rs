@@ -1,3 +1,4 @@
 [tools]
 hadolint = "latest"
 prek = "latest"
+tombi = "latest"

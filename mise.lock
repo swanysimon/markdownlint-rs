@@ -15,3 +15,12 @@ backend = "aqua:j178/prek"
 "platforms.macos-arm64" = { checksum = "sha256:f0a416139eaf8753deb603993314077a3916099d23de67287086a21349151ef0", url = "https://github.com/j178/prek/releases/download/v0.3.4/prek-aarch64-apple-darwin.tar.gz"}
 "platforms.macos-x64" = { checksum = "sha256:60a8d093012bcd40e8fec348450d75d8f5b09d85529f11fc5d606b84273b7978", url = "https://github.com/j178/prek/releases/download/v0.3.4/prek-x86_64-apple-darwin.tar.gz"}
 "platforms.windows-x64" = { checksum = "sha256:21c6e119d58443a696bd585946a6fac8fa0b918a2d975f623157c3f72994a2f3", url = "https://github.com/j178/prek/releases/download/v0.3.4/prek-x86_64-pc-windows-msvc.zip"}
+
+[[tools.tombi]]
+version = "0.8.0"
+backend = "aqua:tombi-toml/tombi"
+"platforms.linux-arm64" = { checksum = "sha256:3175a86f394e3e82f3def902401479b50ebac3970fd152432fb14237da434a4e", url = "https://github.com/tombi-toml/tombi/releases/download/v0.8.0/tombi-cli-0.8.0-aarch64-unknown-linux-musl.gz"}
+"platforms.linux-x64" = { checksum = "sha256:2fe7398c29b9f88b992941e4ddc2e50b0032309ef6e22639b6785eb6732be185", url = "https://github.com/tombi-toml/tombi/releases/download/v0.8.0/tombi-cli-0.8.0-x86_64-unknown-linux-musl.gz"}
+"platforms.macos-arm64" = { checksum = "sha256:491f1aa9bc91b95c49fe2f1f7a3da37c8cf09b4b807bbd46e1a24be74f126ea9", url = "https://github.com/tombi-toml/tombi/releases/download/v0.8.0/tombi-cli-0.8.0-aarch64-apple-darwin.gz"}
+"platforms.macos-x64" = { checksum = "sha256:1246bf0a2c5a2165d5962ecc7ee2ea3f913d803363c4157920723ec9f3f24fad", url = "https://github.com/tombi-toml/tombi/releases/download/v0.8.0/tombi-cli-0.8.0-x86_64-apple-darwin.gz"}
+"platforms.windows-x64" = { checksum = "sha256:3b1c112d20cf10b5957205f089d5058b9ea9016ae807d4aea8a0c4171a4ccfaa", url = "https://github.com/tombi-toml/tombi/releases/download/v0.8.0/tombi-cli-0.8.0-x86_64-pc-windows-msvc.zip"}
