@@ -228,7 +228,7 @@ Headings are never indented.
 # This is correct
 ```
 
-Not: ``   # This is indented`` (with leading spaces)
+Not: a heading preceded by spaces (e.g., two spaces then `# heading`)
 
 ### Front Matter
 

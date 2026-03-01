@@ -26,9 +26,13 @@ impl Rule for MD035 {
 
         let mut violations = Vec::new();
         let mut first_hr_style: Option<String> = None;
+        let code_block_lines = parser.get_code_block_line_numbers();
 
         for (line_num, line) in parser.lines().iter().enumerate() {
             let line_number = line_num + 1;
+            if code_block_lines.contains(&line_number) {
+                continue;
+            }
             let trimmed = line.trim();
 
             // Check if line is a horizontal rule (3+ of same char: - * _)
@@ -133,6 +137,16 @@ mod tests {
         let violations = rule.check(&parser, Some(&config));
 
         assert_eq!(violations.len(), 1);
+    }
+
+    #[test]
+    fn test_hr_in_code_block_not_flagged() {
+        let content = "---\n\n```markdown\n=========\n```\n";
+        let parser = MarkdownParser::new(content);
+        let rule = MD035;
+        let violations = rule.check(&parser, None);
+
+        assert_eq!(violations.len(), 0);
     }
 
     #[test]
