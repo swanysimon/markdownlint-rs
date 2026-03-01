@@ -3,24 +3,23 @@
 [![CI](https://github.com/swanysimon/markdownlint-rs/workflows/CI/badge.svg)](https://github.com/swanysimon/markdownlint-rs/actions/workflows/ci.yml?query=branch%3Amain)
 [![Crates.io](https://img.shields.io/crates/v/markdownlint-rs.svg)](https://crates.io/crates/markdownlint-rs)
 
-A fast, flexible, configuration-based command-line interface for linting Markdown files, written in Rust.
+An opinionated Markdown formatter and linter, written in Rust.
 
-What [black](https://github.com/psf/black) and then [ruff](https://github.com/astral-sh/ruff/) did for
-standardization of formatting in the Python ecosystem, markdownlint-rs hopes to accomplish for Markdown. In particular,
-as AI coding agents become more and more popular, the need for well-structured Markdown files only grows. We hope that
-`mdlint` becomes just as ubiquitous a command as `ruff` in your day to day.
+What [ruff](https://github.com/astral-sh/ruff/) did for Python and [gofmt](https://pkg.go.dev/cmd/gofmt) did for Go,
+`mdlint` aims to do for Markdown: enforce a single, consistent canonical style so that style debates disappear and diffs
+stay meaningful. As AI coding agents increasingly read and write Markdown, well-structured files matter more than ever.
+Run `mdlint format` and stop thinking about it.
 
 **Project Status**: Active development, in between my day job.
 
 ## Features
 
-* **Opinionated**: formats your Markdown files in a consistent, reliable way
+* **Formatter first**: `mdlint format` rewrites files to a canonical style — no configuration required
+* **Linter second**: `mdlint check` reports violations; most are auto-fixable by the formatter
 * **Fast**: written in Rust for performance
-* **Portable**: single, small, 0-dependency, cross-platform (Linux x86_64 or ARM64, macOS Intel or Apple Silicon,
-  and Windows) binary
-* **54 Built-in Rules**: uses rules from [markdownlint](https://github.com/DavidAnson/markdownlint) for a collection
-  of best practices in your Markdown files
-* **Git Support**: Respects `.gitignore` files by default
+* **Portable**: single, small, 0-dependency, cross-platform binary (Linux x86_64 or ARM64, macOS Intel or
+  Apple Silicon, Windows)
+* **Git-aware**: respects `.gitignore` files by default
 
 ## Installation
 
@@ -301,13 +300,14 @@ mdlint format --check || exit 1
 
 ## Supported Rules
 
-markdownlint-rs implements 54 rules compatible with markdownlint:
+mdlint implements the [markdownlint](https://github.com/DavidAnson/markdownlint) rule set. Rules marked
+✅ are enforced automatically by `mdlint format`; rules marked ❌ are reported by `mdlint check` only.
 
-Rule  | Description                                                      | Fixable
-------|------------------------------------------------------------------|--------
+Rule  | Description                                                      | Format fixes
+------|------------------------------------------------------------------|-------------
 MD001 | Heading levels should only increment by one level at a time      | ❌
-MD003 | Heading style                                                    | ❌
-MD004 | Unordered list style                                             | ❌
+MD003 | Heading style                                                    | ✅
+MD004 | Unordered list style                                             | ✅
 MD005 | Inconsistent indentation for list items at the same level        | ❌
 MD007 | Unordered list indentation                                       | ❌
 MD009 | Trailing spaces                                                  | ✅
@@ -320,25 +320,14 @@ MD019 | Multiple spaces after hash on atx style heading                  | ✅
 MD022 | Headings should be surrounded by blank lines                     | ✅
 MD023 | Headings must start at the beginning of the line                 | ✅
 MD025 | Multiple top-level headings in the same document                 | ❌
-...   | See [docs](https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md) | ...
-
-## Differences from markdownlint-cli2
-
-While markdownlint-rs aims for compatibility, there are some intentional differences:
-
-* **No JavaScript custom rules**: Use Rust API instead (future feature)
-* **No markdown-it plugins**: Uses CommonMark-compliant parser with standard extensions
-* **Faster execution**: Compiled binary vs Node.js runtime
-* **Single binary**: No npm/node dependencies required
+...   | See [markdownlint rules](https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md) | ...
 
 ## Contributing
 
-Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code quality
+standards, how to add new rules and formatting behaviors, and the release process.
 
-* Development setup
-* Code quality standards
-* How to add new rules
-* Release process
+The full development task list is in [AIDEV.md](AIDEV.md).
 
 ## License
 
@@ -346,9 +335,9 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
-* [markdownlint](https://github.com/DavidAnson/markdownlint) by David Anson - Original rule definitions
-* [markdownlint-cli2](https://github.com/DavidAnson/markdownlint-cli2) - Configuration format and behavior
-* [pulldown-cmark](https://github.com/raphlinus/pulldown-cmark) - Markdown parsing
+* [markdownlint](https://github.com/DavidAnson/markdownlint) by David Anson — original rule definitions
+* [mdformat](https://github.com/hukkin/mdformat) — inspiration for the formatter-first approach
+* [pulldown-cmark](https://github.com/raphlinus/pulldown-cmark) — Markdown parsing
 
 ## Resources
 

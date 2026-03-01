@@ -155,9 +155,13 @@ Before creating a release:
 * The workflow is idempotent - it will reuse existing releases
 * This is normal if you push multiple tags for the same commit
 
-## Adding New Linting Rules
+## Adding New Rules
 
-To add a new linting rule:
+mdlint has two overlapping concepts: **formatter rules** (enforced by `mdlint format`) and **linting
+rules** (reported by `mdlint check`). Many rules should be both — the formatter fixes the issue and
+the linter reports it if the formatter has not been run.
+
+### Adding a linting rule
 
 1. **Create the rule file**: `src/lint/rules/mdXXX.rs`
 2. **Implement the Rule trait**:
@@ -177,7 +181,18 @@ To add a new linting rule:
 
 3. **Register the rule**: Add it to `create_default_registry()` in `src/lint/rule.rs`
 4. **Write tests**: Add comprehensive tests in the same file
-5. **Update documentation**: Document the rule's behavior
+5. **Mark fixable**: If `mdlint format` can fix this violation, return `true` from `fixable()`
+
+### Adding a formatting behavior
+
+Formatter logic lives in `src/format/` (output formatters) and will live in `src/formatter/` (the
+canonical markdown rewriter, to be implemented). When adding a new canonical style choice, document
+the decision in `FORMAT_SPEC.md`.
+
+### Task list
+
+See [AIDEV.md](AIDEV.md) for the full development task list, including open tasks for rules and
+formatter behaviors, phrased as AI-addressable prompts.
 
 ## Questions?
 
