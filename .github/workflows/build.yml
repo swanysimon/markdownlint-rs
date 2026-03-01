@@ -66,12 +66,14 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          targets: ${{ matrix.target }}
+          target: ${{ matrix.target }}
+          cache-key: "build"
+          cache-shared-key: ${{ matrix.target }}
 
       - name: Install musl tools (Linux musl only)
         if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
