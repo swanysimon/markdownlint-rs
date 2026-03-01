@@ -77,22 +77,22 @@ cargo release patch --execute
 
 This will:
 
-1. ✅ Verify working directory is clean
-2. ✅ Run tests
-3. ✅ Bump version in `Cargo.toml`
-4. ✅ Create a commit: "Release X.Y.Z"
-5. ✅ Create a git tag: `vX.Y.Z`
-6. ✅ Push commit and tag to GitHub
+1. Verify working directory is clean
+2. Run tests
+3. Bump version in `Cargo.toml`
+4. Create a commit: "Release X.Y.Z"
+5. Create a git tag: `vX.Y.Z`
+6. Push commit and tag to GitHub
 
 Once the tag is pushed, GitHub Actions automatically:
 
-1. ✅ Verifies tag matches Cargo.toml version
-2. ✅ Runs all CI checks (tests, clippy, fmt, build)
-3. ✅ Creates GitHub release with release notes
-4. ✅ Builds binaries for all platforms (Linux x86/ARM, macOS x86/ARM, Windows)
-5. ✅ Generates SHA256 checksums for all binaries
-6. ✅ Uploads binaries to GitHub release
-7. ✅ Publishes to crates.io (requires `CARGO_REGISTRY_TOKEN` secret)
+1. Verifies tag matches Cargo.toml version
+2. Runs all CI checks (tests, clippy, fmt, build)
+3. Creates GitHub release with release notes
+4. Builds binaries for all platforms (Linux x86/ARM, macOS x86/ARM, Windows)
+5. Generates SHA256 checksums for all binaries
+6. Uploads binaries to GitHub release
+7. Publishes to crates.io (requires `CARGO_REGISTRY_TOKEN` secret)
 
 #### Option 2: Manual Release
 
