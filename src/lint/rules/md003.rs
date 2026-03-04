@@ -30,9 +30,13 @@ impl Rule for MD003 {
 
         let mut violations = Vec::new();
         let mut first_style: Option<HeadingStyle> = None;
+        let code_block_lines = parser.get_code_block_line_numbers();
 
         for (line_num, line) in parser.lines().iter().enumerate() {
             let line_number = line_num + 1;
+            if code_block_lines.contains(&line_number) {
+                continue;
+            }
             let trimmed = line.trim();
 
             // Detect heading style
@@ -171,5 +175,16 @@ mod tests {
         let violations = rule.check(&parser, None);
 
         assert_eq!(violations.len(), 0); // HR is not a heading
+    }
+
+    #[test]
+    fn test_setext_in_code_block_not_flagged() {
+        let content = "# Real heading\n\n```markdown\nSetext heading\n==============\n```\n";
+        let parser = MarkdownParser::new(content);
+        let rule = MD003;
+        let config = serde_json::json!({ "style": "atx" });
+        let violations = rule.check(&parser, Some(&config));
+
+        assert_eq!(violations.len(), 0);
     }
 }

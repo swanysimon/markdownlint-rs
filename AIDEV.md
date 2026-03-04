@@ -50,40 +50,40 @@ analogous to ruff or gofmt, not markdownlint-cli2.
 The formatter is the centerpiece of mdlint. It reads markdown, parses it to an AST, and emits canonical
 text. This is what makes mdlint a formatter rather than a linter with `--fix`.
 
-- [ ] Design the formatter architecture. The architectural decision is documented in FORMAT_SPEC.md:
+- [x] Design the formatter architecture. The architectural decision is documented in FORMAT_SPEC.md:
   emit canonical text directly from pulldown-cmark events, with a small state machine to track the
   previous block element and insert blank lines before each new block. Key constraint: idempotency
   is a hard requirement — formatting an already-formatted file must produce no changes.
 
-- [ ] Implement `src/formatter/mod.rs` — a formatter that takes `&str` and returns a `String` in
+- [x] Implement `src/formatter/mod.rs` — a formatter that takes `&str` and returns a `String` in
   canonical form. Wire it into the existing `format` CLI command, which currently is a placeholder.
 
-- [ ] Implement heading canonicalization in the formatter: always emit ATX style (`# Heading`), never
+- [x] Implement heading canonicalization in the formatter: always emit ATX style (`# Heading`), never
   setext style (`Heading\n===`). MD003-equivalent.
 
-- [ ] Implement list marker canonicalization: always use dashes (`- item`), never asterisks or plus
+- [x] Implement list marker canonicalization: always use dashes (`- item`), never asterisks or plus
   signs. MD004-equivalent.
 
-- [ ] Implement code fence canonicalization: always use backticks (` ``` `), never tildes (`~~~`).
+- [x] Implement code fence canonicalization: always use backticks (` ``` `), never tildes (`~~~`).
   MD048-equivalent.
 
-- [ ] Implement emphasis marker canonicalization: always use asterisks (`*text*`, `**text**`), never
+- [x] Implement emphasis marker canonicalization: always use asterisks (`*text*`, `**text**`), never
   underscores. MD049/MD050-equivalent.
 
-- [ ] Implement blank line normalization: exactly one blank line before and after block elements
+- [x] Implement blank line normalization: exactly one blank line before and after block elements
   (headings, code blocks, lists, blockquotes); no multiple consecutive blank lines. MD012/MD022/MD031/
   MD032-equivalent.
 
-- [ ] Implement trailing whitespace removal: strip trailing spaces and tabs from every line.
+- [x] Implement trailing whitespace removal: strip trailing spaces and tabs from every line.
   MD009-equivalent.
 
-- [ ] Implement trailing newline normalization: exactly one newline at end of file. MD047-equivalent.
+- [x] Implement trailing newline normalization: exactly one newline at end of file. MD047-equivalent.
 
-- [ ] Write tests verifying formatter idempotency: format a file, format it again, assert outputs are
+- [x] Write tests verifying formatter idempotency: format a file, format it again, assert outputs are
   identical. Then add a property-based test using proptest that generates random CommonMark input and
   verifies idempotency.
 
-- [ ] Implement `mdlint format --check`: read each file, format in memory, exit 1 if any file would
+- [x] Implement `mdlint format --check`: read each file, format in memory, exit 1 if any file would
   change. No files written. This is the CI-friendly verification mode.
 
 ---
@@ -104,7 +104,7 @@ formatter should also be marked fixable.
 - [ ] Fix the task list checkbox detection bug: `[ ]` in link position is being detected as a link.
   It should be recognized as a GFM task list checkbox and excluded from link-related rules (MD011, etc.).
 
-- [ ] Fix code block exclusion bugs: MD003, MD004, MD018, MD019, MD023, MD032, MD035 do not
+- [x] Fix code block exclusion bugs: MD003, MD004, MD018, MD019, MD023, MD032, MD035 do not
   correctly skip content inside fenced code blocks. FORMAT_SPEC.md surfaces all of these —
   running `mdlint check FORMAT_SPEC.md` is a good regression test. MD003 uses raw line scanning
   with no code block check at all. The fix pattern is already established in MD004 (uses AST

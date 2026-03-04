@@ -20,9 +20,13 @@ impl Rule for MD019 {
 
     fn check(&self, parser: &MarkdownParser, _config: Option<&Value>) -> Vec<Violation> {
         let mut violations = Vec::new();
+        let code_block_lines = parser.get_code_block_line_numbers();
 
         for (line_num, line) in parser.lines().iter().enumerate() {
             let line_number = line_num + 1;
+            if code_block_lines.contains(&line_number) {
+                continue;
+            }
             let trimmed = line.trim();
 
             // Check for ATX heading with multiple spaces after hash
@@ -108,5 +112,15 @@ mod tests {
 
         assert_eq!(violations.len(), 1);
         assert!(violations[0].message.contains("5 spaces"));
+    }
+
+    #[test]
+    fn test_heading_in_code_block_not_flagged() {
+        let content = "# Real heading\n\n```\n##  WouldBeViolation\n```\n";
+        let parser = MarkdownParser::new(content);
+        let rule = MD019;
+        let violations = rule.check(&parser, None);
+
+        assert_eq!(violations.len(), 0);
     }
 }

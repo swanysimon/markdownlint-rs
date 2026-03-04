@@ -20,9 +20,13 @@ impl Rule for MD018 {
 
     fn check(&self, parser: &MarkdownParser, _config: Option<&Value>) -> Vec<Violation> {
         let mut violations = Vec::new();
+        let code_block_lines = parser.get_code_block_line_numbers();
 
         for (line_num, line) in parser.lines().iter().enumerate() {
             let line_number = line_num + 1;
+            if code_block_lines.contains(&line_number) {
+                continue;
+            }
             let trimmed = line.trim();
 
             // Check for ATX heading without space after hash
@@ -107,6 +111,16 @@ mod tests {
     #[test]
     fn test_closed_heading() {
         let content = "## Closed heading ##";
+        let parser = MarkdownParser::new(content);
+        let rule = MD018;
+        let violations = rule.check(&parser, None);
+
+        assert_eq!(violations.len(), 0);
+    }
+
+    #[test]
+    fn test_heading_in_code_block_not_flagged() {
+        let content = "# Real heading\n\n```\n#NotAHeading\n```\n";
         let parser = MarkdownParser::new(content);
         let rule = MD018;
         let violations = rule.check(&parser, None);

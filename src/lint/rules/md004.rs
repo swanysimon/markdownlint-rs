@@ -1,7 +1,6 @@
 use crate::lint::rule::Rule;
 use crate::markdown::MarkdownParser;
 use crate::types::Violation;
-use pulldown_cmark::{Event, Tag, TagEnd};
 use serde_json::Value;
 
 pub struct MD004;
@@ -31,30 +30,7 @@ impl Rule for MD004 {
 
         let mut violations = Vec::new();
         let mut first_marker: Option<ListMarker> = None;
-
-        // Track code blocks to exclude them from checking
-        let mut code_block_lines = std::collections::HashSet::new();
-        let mut in_code_block = false;
-
-        for (event, range) in parser.parse_with_offsets() {
-            match event {
-                Event::Start(Tag::CodeBlock(_)) => {
-                    in_code_block = true;
-                }
-                Event::End(TagEnd::CodeBlock) => {
-                    in_code_block = false;
-                }
-                Event::Text(_) if in_code_block => {
-                    // Mark all lines that this text event spans
-                    let start_line = parser.offset_to_line(range.start);
-                    let end_line = parser.offset_to_line(range.end.saturating_sub(1));
-                    for line in start_line..=end_line {
-                        code_block_lines.insert(line);
-                    }
-                }
-                _ => {}
-            }
-        }
+        let code_block_lines = parser.get_code_block_line_numbers();
 
         for (line_num, line) in parser.lines().iter().enumerate() {
             let line_number = line_num + 1;
@@ -172,47 +148,16 @@ mod tests {
     }
 
     #[test]
-    fn test_code_block_line_detection() {
-        // Verify that all lines in a code block are detected
-        let content = "```\ncode line 1\ncode line 2\ncode line 3\n```\n";
+    fn test_list_markers_in_code_block_not_flagged() {
+        // List markers inside fenced code blocks must not be checked.
+        let content = "```\n* asterisk\n+ plus\n- dash\n```\n\n- real item\n";
         let parser = MarkdownParser::new(content);
+        let rule = MD004;
+        let config = serde_json::json!({ "style": "dash" });
+        let violations = rule.check(&parser, Some(&config));
 
-        let mut code_block_lines = std::collections::HashSet::new();
-        let mut in_code_block = false;
-
-        for (event, range) in parser.parse_with_offsets() {
-            match event {
-                Event::Start(Tag::CodeBlock(_)) => {
-                    in_code_block = true;
-                }
-                Event::End(TagEnd::CodeBlock) => {
-                    in_code_block = false;
-                }
-                Event::Text(_) if in_code_block => {
-                    // Mark all lines that this text event spans
-                    let start_line = parser.offset_to_line(range.start);
-                    let end_line = parser.offset_to_line(range.end.saturating_sub(1));
-                    for line in start_line..=end_line {
-                        code_block_lines.insert(line);
-                    }
-                }
-                _ => {}
-            }
-        }
-
-        // All code lines should be marked (lines 2, 3, 4)
-        assert!(
-            code_block_lines.contains(&2),
-            "Line 2 (code line 1) should be in code block"
-        );
-        assert!(
-            code_block_lines.contains(&3),
-            "Line 3 (code line 2) should be in code block"
-        );
-        assert!(
-            code_block_lines.contains(&4),
-            "Line 4 (code line 3) should be in code block"
-        );
+        // Only the real list item on the last line matters; the code block is ignored.
+        assert_eq!(violations.len(), 0);
     }
 
     #[test]

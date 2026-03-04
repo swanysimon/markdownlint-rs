@@ -20,9 +20,13 @@ impl Rule for MD023 {
 
     fn check(&self, parser: &MarkdownParser, _config: Option<&Value>) -> Vec<Violation> {
         let mut violations = Vec::new();
+        let code_block_lines = parser.get_code_block_line_numbers();
 
         for (line_num, line) in parser.lines().iter().enumerate() {
             let line_number = line_num + 1;
+            if code_block_lines.contains(&line_number) {
+                continue;
+            }
 
             // Check if line starts with whitespace followed by hash
             if line.starts_with(' ') || line.starts_with('\t') {
@@ -91,23 +95,36 @@ mod tests {
     }
 
     #[test]
-    fn test_tab_indented() {
+    fn test_tab_indented_is_code_block() {
+        // A leading tab = indented code block in CommonMark; not a heading. Must not flag.
         let content = "\t# Heading with tab";
         let parser = MarkdownParser::new(content);
         let rule = MD023;
         let violations = rule.check(&parser, None);
 
-        assert_eq!(violations.len(), 1);
+        assert_eq!(violations.len(), 0);
     }
 
     #[test]
-    fn test_multiple_spaces() {
+    fn test_four_spaces_is_code_block() {
+        // Four leading spaces = indented code block in CommonMark; not a heading. Must not flag.
         let content = "    # Heading with 4 spaces";
         let parser = MarkdownParser::new(content);
         let rule = MD023;
         let violations = rule.check(&parser, None);
 
+        assert_eq!(violations.len(), 0);
+    }
+
+    #[test]
+    fn test_two_spaces_is_flagged() {
+        // 1–3 leading spaces: CommonMark still parses this as an ATX heading. Must flag.
+        let content = "  # Heading with 2 spaces";
+        let parser = MarkdownParser::new(content);
+        let rule = MD023;
+        let violations = rule.check(&parser, None);
+
         assert_eq!(violations.len(), 1);
-        assert!(violations[0].message.contains("4 space"));
+        assert!(violations[0].message.contains("2 space"));
     }
 }
