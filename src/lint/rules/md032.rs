@@ -238,6 +238,16 @@ mod tests {
     }
 
     #[test]
+    fn test_list_in_code_block_not_flagged() {
+        let content = "Text before\n\n```markdown\n- item 1\n- item 2\n```\n\nText after";
+        let parser = MarkdownParser::new(content);
+        let rule = MD032;
+        let violations = rule.check(&parser, None);
+
+        assert_eq!(violations.len(), 0);
+    }
+
+    #[test]
     fn test_mixed_markers_are_separate_lists() {
         // Different list markers are treated as separate lists
         let content = "Text\n\n* Item asterisk\n+ Item plus\n- Item dash\n\nText after";
@@ -249,15 +259,5 @@ mod tests {
         // + needs blank before/after (2 violations)
         // - needs blank before/after (2 violations)
         assert_eq!(violations.len(), 4);
-    }
-
-    #[test]
-    fn test_list_in_code_block_not_flagged() {
-        let content = "Text before\n\n```markdown\n- item 1\n- item 2\n```\n\nText after";
-        let parser = MarkdownParser::new(content);
-        let rule = MD032;
-        let violations = rule.check(&parser, None);
-
-        assert_eq!(violations.len(), 0);
     }
 }

@@ -260,6 +260,9 @@ impl FormatterState {
         match tag {
             TagEnd::Paragraph => {
                 let text = std::mem::take(&mut self.inline);
+                if self.list_depth == 0 {
+                    self.write_bq_prefix();
+                }
                 self.flush_inline_text(&text, false);
                 self.needs_blank = true;
                 self.in_tight_item = false;
@@ -408,10 +411,10 @@ impl FormatterState {
     }
 
     fn emit_blank_if_needed(&mut self) {
-        if self.needs_blank {
+        if self.needs_blank && !self.out.is_empty() {
             self.out.push('\n');
-            self.needs_blank = false;
         }
+        self.needs_blank = false;
     }
 
     fn write_bq_prefix(&mut self) {

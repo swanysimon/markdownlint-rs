@@ -155,16 +155,6 @@ mod tests {
     }
 
     #[test]
-    fn test_with_spaces() {
-        let content = "* * *\n\nContent\n\n* * *";
-        let parser = MarkdownParser::new(content);
-        let rule = MD035;
-        let violations = rule.check(&parser, None);
-
-        assert_eq!(violations.len(), 0); // Consistent
-    }
-
-    #[test]
     fn test_hr_in_code_block_not_flagged() {
         let content = "---\n\n```markdown\n=========\n```\n";
         let parser = MarkdownParser::new(content);
@@ -172,5 +162,15 @@ mod tests {
         let violations = rule.check(&parser, None);
 
         assert_eq!(violations.len(), 0);
+    }
+
+    #[test]
+    fn test_with_spaces() {
+        let content = "* * *\n\nContent\n\n* * *";
+        let parser = MarkdownParser::new(content);
+        let rule = MD035;
+        let violations = rule.check(&parser, None);
+
+        assert_eq!(violations.len(), 0); // Consistent
     }
 }

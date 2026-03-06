@@ -95,8 +95,9 @@ mod tests {
     }
 
     #[test]
-    fn test_tab_indented_is_code_block() {
-        // A leading tab = indented code block in CommonMark; not a heading. Must not flag.
+    fn test_tab_indented() {
+        // A leading tab expands to 4 spaces in CommonMark, making this an indented
+        // code block rather than a heading. MD023 must not flag it.
         let content = "\t# Heading with tab";
         let parser = MarkdownParser::new(content);
         let rule = MD023;
@@ -106,8 +107,8 @@ mod tests {
     }
 
     #[test]
-    fn test_four_spaces_is_code_block() {
-        // Four leading spaces = indented code block in CommonMark; not a heading. Must not flag.
+    fn test_four_spaces_is_code_not_flagged() {
+        // Four leading spaces = indented code block in CommonMark; not a heading.
         let content = "    # Heading with 4 spaces";
         let parser = MarkdownParser::new(content);
         let rule = MD023;
@@ -118,7 +119,7 @@ mod tests {
 
     #[test]
     fn test_two_spaces_is_flagged() {
-        // 1–3 leading spaces: CommonMark still parses this as an ATX heading. Must flag.
+        // 1-3 leading spaces: CommonMark still parses this as an ATX heading.
         let content = "  # Heading with 2 spaces";
         let parser = MarkdownParser::new(content);
         let rule = MD023;
