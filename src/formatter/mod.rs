@@ -91,9 +91,16 @@ impl FormatterState {
             Event::End(tag) => self.on_end(tag),
             Event::Text(t) => self.on_text(&t),
             Event::Code(c) => {
-                // Inline code: choose delimiter based on content
-                let delim = if c.contains('`') { "``" } else { "`" };
-                self.inline.push_str(delim);
+                // Inline code: choose a delimiter longer than any backtick run in the content.
+                let max_run = c.chars().fold((0usize, 0usize), |(max, cur), ch| {
+                    if ch == '`' {
+                        (max.max(cur + 1), cur + 1)
+                    } else {
+                        (max, 0)
+                    }
+                });
+                let delim = "`".repeat(max_run.0 + 1);
+                self.inline.push_str(&delim);
                 if c.starts_with('`') || c.ends_with('`') {
                     self.inline.push(' ');
                 }
@@ -101,7 +108,7 @@ impl FormatterState {
                 if c.starts_with('`') || c.ends_with('`') {
                     self.inline.push(' ');
                 }
-                self.inline.push_str(delim);
+                self.inline.push_str(&delim);
             }
             Event::Html(h) => {
                 // Raw HTML block: emit verbatim.
