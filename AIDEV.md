@@ -113,28 +113,33 @@ formatter should also be marked fixable.
   fixes inside fenced code blocks — the fixer must also check whether a line is inside a code
   block before applying a fix.
 
-- [ ] Implement inline configuration comments: parse `<!-- mdlint-disable MD001 -->`,
+- [x] Implement inline configuration comments: parse `<!-- mdlint-disable MD001 -->`,
   `<!-- mdlint-enable MD001 -->`, and `<!-- mdlint-disable-next-line MD001 -->` HTML comments
   during the check pass to suppress violations on specific lines.
 
-- [ ] Implement any remaining rules from the 54-rule set that are missing: review `src/lint/rules/mod.rs`
-  to confirm registration count against the full markdownlint rule list.
+- [x] Implement any remaining rules from the 54-rule set that are missing: review `src/lint/rules/mod.rs`
+  to confirm registration count against the full markdownlint rule list. Confirmed: MD057 is a deliberate
+  gap in the official spec (like MD002, MD008). All other rules have implementations and tests.
 
 ---
 
 ## Priority 4: Testing
 
-- [ ] Write integration tests for the full check workflow: use test fixtures in `tests/fixtures/` to run
+- [x] Write integration tests for the full check workflow: use test fixtures in `tests/fixtures/` to run
   discovery → lint → format output and compare against golden output files.
 
-- [ ] Write integration tests for the full format workflow: for each fixture, run the formatter and
+- [x] Write integration tests for the full format workflow: for each fixture, run the formatter and
   assert output matches a golden file. Assert that formatting the golden file again is a no-op
   (idempotency check).
 
-- [ ] Add property-based tests for the formatter using proptest: generate random strings and verify the
+- [x] Add property-based tests for the formatter using proptest: generate random strings and verify the
   formatter (1) never panics, (2) is idempotent, (3) produces output that parses as valid CommonMark.
+  Proptest found two real bugs fixed in the process: empty list items had trailing whitespace; code
+  block content without a trailing newline merged with the closing fence; hard breaks using `  \n`
+  were stripped by trailing-whitespace normalisation (fixed to use `\\\n`); backslash characters in
+  text were not re-escaped (fixed in `on_text`).
 
-- [ ] Add regression tests for all known bugs as they are discovered and fixed. Each bug gets a fixture
+- [x] Add regression tests for all known bugs as they are discovered and fixed. Each bug gets a fixture
   and a test.
 
 - [ ] Consider running compatibility tests against reference markdown files from real open-source projects

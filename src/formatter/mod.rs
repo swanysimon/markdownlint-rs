@@ -108,8 +108,9 @@ impl FormatterState {
                 self.inline.push('\n');
             }
             Event::HardBreak => {
-                // Two trailing spaces + newline = hard break in Markdown.
-                self.inline.push_str("  \n");
+                // Backslash + newline = hard line break in CommonMark.
+                // Using backslash style avoids trailing-whitespace stripping.
+                self.inline.push_str("\\\n");
             }
             Event::Rule => {
                 self.emit_blank_if_needed();
@@ -244,6 +245,11 @@ impl FormatterState {
                 self.needs_blank = true;
             }
             TagEnd::CodeBlock => {
+                // Ensure code block content ends with a newline so the closing
+                // fence is never appended to the last content line.
+                if !self.out.ends_with('\n') {
+                    self.out.push('\n');
+                }
                 self.write_bq_prefix();
                 self.out.push_str("```\n");
                 self.in_code_block = false;
@@ -307,7 +313,16 @@ impl FormatterState {
             // Code block content goes directly to output verbatim.
             self.out.push_str(text);
         } else {
-            self.inline.push_str(text);
+            // Escape backslashes so that a literal `\` in the resolved text
+            // is not re-interpreted as an escape sequence on the next parse.
+            // (pulldown-cmark resolves `\\` → `\`; we must re-double it.)
+            for ch in text.chars() {
+                if ch == '\\' {
+                    self.inline.push_str("\\\\");
+                } else {
+                    self.inline.push(ch);
+                }
+            }
         }
     }
 
@@ -348,9 +363,14 @@ impl FormatterState {
     }
 
     fn finish(mut self) -> String {
-        // Normalise to exactly one trailing newline.
         let s = std::mem::take(&mut self.out);
-        let trimmed = s.trim_end_matches('\n');
+        // Strip trailing whitespace from each line, then normalise to exactly one trailing newline.
+        let cleaned: String = s
+            .lines()
+            .map(|l| l.trim_end())
+            .collect::<Vec<_>>()
+            .join("\n");
+        let trimmed = cleaned.trim_end_matches('\n');
         if trimmed.is_empty() {
             return String::new();
         }
