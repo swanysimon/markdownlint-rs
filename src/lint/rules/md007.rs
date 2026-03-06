@@ -27,9 +27,15 @@ impl Rule for MD007 {
         let mut violations = Vec::new();
         let mut list_depth = 0;
         let mut prev_indent = 0;
+        let code_block_lines = parser.get_code_block_line_numbers();
 
         for (line_num, line) in parser.lines().iter().enumerate() {
             let line_number = line_num + 1;
+
+            if code_block_lines.contains(&line_number) {
+                continue;
+            }
+
             let trimmed = line.trim_start();
 
             // Check if this is an unordered list item

@@ -13,31 +13,20 @@ id = "check-yaml"
 repo = "local"
 
 [[repos.hooks]]
-id = "tombi-fmt"
-name = "format TOML"
-entry = "tombi format"
-language = "system"
-pass_filenames = false
-types = ["toml"]
-priority = 1
-
-[[repos.hooks]]
 id = "tombi-check"
-name = "check TOML"
+name = "check toml"
 entry = "tombi check"
 language = "system"
 pass_filenames = false
 types = ["toml"]
-priority = 2
 
 [[repos.hooks]]
-id = "rustfmt"
-name = "format Rust"
-entry = "cargo fmt -- --files-with-diff"
+id = "tombi-fmt"
+name = "format toml"
+entry = "tombi format"
 language = "system"
 pass_filenames = false
-types = ["rust"]
-priority = 2
+types = ["toml"]
 
 [[repos.hooks]]
 id = "clippy"
@@ -49,26 +38,32 @@ types = ["rust"]
 priority = 3
 
 [[repos.hooks]]
+id = "rustfmt"
+name = "format rust"
+entry = "cargo fmt -- --files-with-diff"
+language = "system"
+pass_filenames = false
+types = ["rust"]
+
+[[repos.hooks]]
 id = "test"
-name = "test Rust"
+name = "test rust"
 entry = "cargo test"
 language = "system"
 pass_filenames = false
 types = ["rust"]
-priority = 4
 
 [[repos.hooks]]
 id = "mdlint"
-name = "check Markdown (dogfood)"
-entry = "cargo run -- check --exclude FORMAT_SPEC.md"
+name = "check markdown (dogfood)"
+entry = "cargo run -- check --exclude FORMAT_SPEC.md --exclude tests/fixtures"
 language = "system"
 pass_filenames = false
 types = ["rust"]
-priority = 5
 
 [[repos.hooks]]
 id = "hadolint"
-name = "check Dockerfile"
+name = "check dockerfile"
 entry = "hadolint"
 language = "system"
 files = "^Dockerfile$"

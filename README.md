@@ -17,8 +17,7 @@ Run `mdlint format` and stop thinking about it.
 - **Formatter first**: `mdlint format` rewrites files to a canonical style — no configuration required
 - **Linter second**: `mdlint check` reports violations; most are auto-fixable by the formatter
 - **Fast**: written in Rust for performance
-- **Portable**: single, small, 0-dependency, cross-platform binary (Linux x86_64 or ARM64, macOS Intel or
-  Apple Silicon, Windows)
+- **Portable**: single, small, 0-dependency binary (Linux x86_64/ARM64, macOS Intel/Apple Silicon, Windows)
 - **Git-aware**: respects `.gitignore` files by default
 
 ## Installation
@@ -109,17 +108,19 @@ mdlint format README.md docs/
 Lint Markdown files and report issues.
 
 ```text
-Usage: mdlint check [OPTIONS] [PATTERNS]...
+Usage: mdlint check [OPTIONS] [FILES]...
 
 Arguments:
-  [PATTERNS]...          File patterns to check (auto-detected if omitted)
+  [FILES]...              Files or directories to check (defaults to current directory)
 
 Options:
-      --config <CONFIG>  Path to configuration file
-      --fix              Apply auto-fixes where possible
-      --format <FORMAT>  Output format: default or json [default: default]
-      --no-color         Disable color output
-  -h, --help             Print help
+      --fix               Apply auto-fixes where possible
+      --format <FORMAT>   Output format: default or json [default: default]
+      --exclude <PATH>    Exclude files or directories
+      --config <CONFIG>   Path to configuration file
+  -v, --verbose           Print each file name as it is checked
+      --color <COLOR>     Color output: auto, always, never [default: auto]
+  -h, --help              Print help
 ```
 
 #### `mdlint format`
@@ -127,16 +128,17 @@ Options:
 Format Markdown files with opinionated fixes.
 
 ```text
-Usage: mdlint format [OPTIONS] [PATTERNS]...
+Usage: mdlint format [OPTIONS] [FILES]...
 
 Arguments:
-  [PATTERNS]...          File patterns to format (auto-detected if omitted)
+  [FILES]...              Files or directories to format (defaults to current directory)
 
 Options:
-      --check            Only verify formatting, don't modify files
-      --config <CONFIG>  Path to configuration file
-      --no-color         Disable color output
-  -h, --help             Print help
+      --check             Only verify formatting, don't modify files
+      --exclude <PATH>    Exclude files or directories
+      --config <CONFIG>   Path to configuration file
+      --color <COLOR>     Color output: auto, always, never [default: auto]
+  -h, --help              Print help
 ```
 
 ### Examples
@@ -177,10 +179,16 @@ mdlint format
 mdlint format --check
 ```
 
-**Disable color output (for CI):**
+**Disable color output:**
 
 ```bash
-mdlint check --no-color
+mdlint check --color never
+```
+
+**Show each file as it is checked:**
+
+```bash
+mdlint check --verbose
 ```
 
 ## Configuration
@@ -233,8 +241,7 @@ enabled = false
 
 #### Global Options
 
-- `default_enabled` (boolean): Enable all rules by default. When `true`, rules are enabled unless explicitly disabled.
-  Default: `false`
+- `default_enabled` (boolean): When `true`, all rules are enabled unless explicitly disabled. Default: `false`
 - `gitignore` (boolean): Respect `.gitignore` files when discovering markdown files. Default: `true`
 - `no_inline_config` (boolean): Disable inline configuration via HTML comments. Default: `false`
 - `custom_rules` (array): Paths to custom rule modules (future feature). Default: `[]`
@@ -246,25 +253,25 @@ Rules can be configured in three ways:
 
 1. **Enable/Disable a rule:**
 
-   ```toml
-   [rules.MD013]
-   enabled = false
-   ```
+```toml
+[rules.MD013]
+enabled = false
+```
 
 2. **Configure rule parameters:**
 
-   ```toml
-   [rules.MD013]
-   line_length = 100
-   code_blocks = false
-   ```
+```toml
+[rules.MD013]
+line_length = 100
+code_blocks = false
+```
 
 3. **Use both (parameters implicitly enable the rule):**
 
-   ```toml
-   [rules.MD003]
-   style = "atx"
-   ```
+```toml
+[rules.MD003]
+style = "atx"
+```
 
 ### Configuration Hierarchy
 
@@ -281,6 +288,30 @@ configuration wins.
 
 See the [markdownlint rules documentation](https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md) for
 details on each rule and its configuration options.
+
+### Inline Configuration
+
+Rules can be suppressed for specific lines using HTML comments, without modifying `mdlint.toml`:
+
+```markdown
+<!-- mdlint-disable-next-line MD013 -->
+This line may be longer than the configured limit.
+
+<!-- mdlint-disable MD033 -->
+<div>Raw HTML block that needs to stay as-is</div>
+<!-- mdlint-enable MD033 -->
+```
+
+| Comment | Effect |
+| ------- | ------ |
+| `<!-- mdlint-disable MD001 -->` | Disable rule from this line onward |
+| `<!-- mdlint-enable MD001 -->` | Re-enable rule from this line onward |
+| `<!-- mdlint-disable-next-line MD001 -->` | Disable rule for the next line only |
+| `<!-- mdlint-disable -->` | Disable all rules from this line onward |
+| `<!-- mdlint-enable -->` | Re-enable all rules |
+
+Multiple rules: `<!-- mdlint-disable MD001 MD013 -->` — space-separate rule codes.
+Set `no_inline_config = true` in `mdlint.toml` to ignore all inline comments.
 
 ## Exit Codes
 
@@ -303,24 +334,79 @@ mdlint format --check || exit 1
 mdlint implements the [markdownlint](https://github.com/DavidAnson/markdownlint) rule set. Rules marked
 ✅ are enforced automatically by `mdlint format`; rules marked ❌ are reported by `mdlint check` only.
 
-Rule  | Description                                                      | Format fixes
-------|------------------------------------------------------------------|-------------
-MD001 | Heading levels should only increment by one level at a time      | ❌
-MD003 | Heading style                                                    | ✅
-MD004 | Unordered list style                                             | ✅
-MD005 | Inconsistent indentation for list items at the same level        | ❌
-MD007 | Unordered list indentation                                       | ❌
-MD009 | Trailing spaces                                                  | ✅
-MD010 | Hard tabs                                                        | ✅
-MD011 | Reversed link syntax                                             | ❌
-MD012 | Multiple consecutive blank lines                                 | ✅
-MD013 | Line length                                                      | ❌
-MD018 | No space after hash on atx style heading                         | ✅
-MD019 | Multiple spaces after hash on atx style heading                  | ✅
-MD022 | Headings should be surrounded by blank lines                     | ✅
-MD023 | Headings must start at the beginning of the line                 | ✅
-MD025 | Multiple top-level headings in the same document                 | ❌
-...   | See [markdownlint rules](https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md) | ...
+| Rule | Description | Format fixes |
+| ---- | ----------- | ------------ |
+| MD001 | Heading levels should only increment by one level at a time | ❌ |
+| MD003 | Heading style | ✅ |
+| MD004 | Unordered list style | ✅ |
+| MD005 | Inconsistent indentation for list items at the same level | ❌ |
+| MD007 | Unordered list indentation | ❌ |
+| MD009 | Trailing spaces | ✅ |
+| MD010 | Hard tabs | ✅ |
+| MD011 | Reversed link syntax | ❌ |
+| MD012 | Multiple consecutive blank lines | ✅ |
+| MD013 | Line length | ❌ |
+| MD018 | No space after hash on atx style heading | ✅ |
+| MD019 | Multiple spaces after hash on atx style heading | ✅ |
+| MD022 | Headings should be surrounded by blank lines | ✅ |
+| MD023 | Headings must start at the beginning of the line | ✅ |
+| MD025 | Multiple top-level headings in the same document | ❌ |
+| ... | See [markdownlint rules](https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md) | ... |
+
+## Pre-commit Hooks
+
+### Native git hook
+
+Create `.git/hooks/pre-commit` (and make it executable with `chmod +x`):
+
+```bash
+#!/bin/sh
+mdlint format --check
+```
+
+This causes `git commit` to fail if any staged Markdown file needs formatting.
+
+### pre-commit framework
+
+Add to `.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: https://github.com/swanysimon/markdownlint-rs
+    rev: v0.3.0  # use the latest release tag
+    hooks:
+      - id: mdlint-format-check
+        name: mdlint format --check
+        language: system
+        entry: mdlint format --check
+        types: [markdown]
+      - id: mdlint-check
+        name: mdlint check
+        language: system
+        entry: mdlint check
+        types: [markdown]
+```
+
+Or use `mdlint check --fix` to auto-fix and stage the result:
+
+```yaml
+      - id: mdlint-fix
+        name: mdlint check --fix
+        language: system
+        entry: mdlint check --fix
+        types: [markdown]
+        pass_filenames: false
+```
+
+### GitHub Actions
+
+```yaml
+- name: Check Markdown formatting
+  run: mdlint format --check
+
+- name: Lint Markdown
+  run: mdlint check
+```
 
 ## Contributing
 

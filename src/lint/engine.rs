@@ -31,12 +31,10 @@ impl LintEngine {
             if !suppressed.is_empty() {
                 violations.retain(|v| {
                     let line = v.line;
-                    let all = suppressed
-                        .get("*")
-                        .map_or(false, |s| s.contains(&line));
+                    let all = suppressed.get("*").is_some_and(|s| s.contains(&line));
                     let specific = suppressed
                         .get(v.rule.as_str())
-                        .map_or(false, |s| s.contains(&line));
+                        .is_some_and(|s| s.contains(&line));
                     !all && !specific
                 });
             }
@@ -121,18 +119,12 @@ fn parse_inline_config(content: &str) -> HashMap<String, HashSet<usize>> {
                 let to_enable = rules_or_all(rule_names);
                 if to_enable.contains(&"*".to_string()) {
                     for (rule, start) in active.drain() {
-                        ranges
-                            .entry(rule)
-                            .or_default()
-                            .push((start, line_num - 1));
+                        ranges.entry(rule).or_default().push((start, line_num - 1));
                     }
                 } else {
                     for rule in to_enable {
                         if let Some(start) = active.remove(&rule) {
-                            ranges
-                                .entry(rule)
-                                .or_default()
-                                .push((start, line_num - 1));
+                            ranges.entry(rule).or_default().push((start, line_num - 1));
                         }
                     }
                 }
@@ -173,10 +165,9 @@ fn extract_directive(line: &str) -> Option<(DirectiveKind, Vec<String>)> {
         Some((DirectiveKind::DisableNextLine, parse_rule_names(rest)))
     } else if let Some(rest) = body.strip_prefix("mdlint-disable") {
         Some((DirectiveKind::Disable, parse_rule_names(rest)))
-    } else if let Some(rest) = body.strip_prefix("mdlint-enable") {
-        Some((DirectiveKind::Enable, parse_rule_names(rest)))
     } else {
-        None
+        body.strip_prefix("mdlint-enable")
+            .map(|rest| (DirectiveKind::Enable, parse_rule_names(rest)))
     }
 }
 
@@ -189,6 +180,26 @@ fn rules_or_all(rules: Vec<String>) -> Vec<String> {
         vec!["*".to_string()]
     } else {
         rules
+    }
+}
+
+/// Convert a TOML value to a JSON value
+fn toml_to_json(toml_val: toml::Value) -> Value {
+    match toml_val {
+        toml::Value::String(s) => Value::String(s),
+        toml::Value::Integer(i) => Value::Number(i.into()),
+        toml::Value::Float(f) => {
+            Value::Number(serde_json::Number::from_f64(f).unwrap_or_else(|| 0.into()))
+        }
+        toml::Value::Boolean(b) => Value::Bool(b),
+        toml::Value::Array(arr) => Value::Array(arr.into_iter().map(toml_to_json).collect()),
+        toml::Value::Table(table) => Value::Object(
+            table
+                .into_iter()
+                .map(|(k, v)| (k, toml_to_json(v)))
+                .collect(),
+        ),
+        toml::Value::Datetime(dt) => Value::String(dt.to_string()),
     }
 }
 
@@ -249,7 +260,10 @@ mod tests {
         let violations = engine.lint_content(content).unwrap();
         // All rules suppressed from line 1 to line 2 (enable on line 3)
         let lines_12: Vec<_> = violations.iter().filter(|v| v.line <= 2).collect();
-        assert!(lines_12.is_empty(), "Lines 1-2 should have no violations: {violations:?}");
+        assert!(
+            lines_12.is_empty(),
+            "Lines 1-2 should have no violations: {violations:?}"
+        );
     }
 
     #[test]
@@ -277,25 +291,5 @@ mod tests {
             violations.iter().all(|v| v.rule != "MD013"),
             "MD013 should be suppressed to end of file: {violations:?}"
         );
-    }
-}
-
-/// Convert a TOML value to a JSON value
-fn toml_to_json(toml_val: toml::Value) -> Value {
-    match toml_val {
-        toml::Value::String(s) => Value::String(s),
-        toml::Value::Integer(i) => Value::Number(i.into()),
-        toml::Value::Float(f) => {
-            Value::Number(serde_json::Number::from_f64(f).unwrap_or_else(|| 0.into()))
-        }
-        toml::Value::Boolean(b) => Value::Bool(b),
-        toml::Value::Array(arr) => Value::Array(arr.into_iter().map(toml_to_json).collect()),
-        toml::Value::Table(table) => Value::Object(
-            table
-                .into_iter()
-                .map(|(k, v)| (k, toml_to_json(v)))
-                .collect(),
-        ),
-        toml::Value::Datetime(dt) => Value::String(dt.to_string()),
     }
 }

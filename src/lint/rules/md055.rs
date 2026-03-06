@@ -26,9 +26,14 @@ impl Rule for MD055 {
 
         let mut violations = Vec::new();
         let mut first_style: Option<&str> = None;
+        let code_block_lines = parser.get_code_block_line_numbers();
 
         for (line_num, line) in parser.lines().iter().enumerate() {
             let line_number = line_num + 1;
+
+            if code_block_lines.contains(&line_number) {
+                continue;
+            }
 
             // Check if line is a table row (contains pipes)
             if !line.contains('|') {

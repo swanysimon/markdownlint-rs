@@ -65,8 +65,7 @@ impl Rule for MD004 {
 
                     if current_marker != required_marker {
                         let indent_len = line.len() - trimmed.len();
-                        let replacement =
-                            format!("{}- {}", &line[..indent_len], &trimmed[2..]);
+                        let replacement = format!("{}- {}", &line[..indent_len], &trimmed[2..]);
                         violations.push(Violation {
                             line: line_number,
                             column: Some(indent_len + 1),
@@ -87,8 +86,7 @@ impl Rule for MD004 {
                     if let Some(first) = first_marker {
                         if current_marker != first {
                             let indent_len = line.len() - trimmed.len();
-                            let replacement =
-                                format!("{}- {}", &line[..indent_len], &trimmed[2..]);
+                            let replacement = format!("{}- {}", &line[..indent_len], &trimmed[2..]);
                             violations.push(Violation {
                                 line: line_number,
                                 column: Some(indent_len + 1),

@@ -8,20 +8,22 @@ The only prerequisites are [mise](https://mise.jdx.dev/) and [Rust](https://rust
 Docker is needed for Dockerfile linting. mise manages every other tool automatically.
 
 1. **Install mise**: Follow the [mise installation guide](https://mise.jdx.dev/getting-started.html)
+
 2. **Install Rust**: Use [rustup](https://rustup.rs/)
+
 3. **Clone the repository and install tools**:
 
-   ```bash
-   git clone https://github.com/swanysimon/markdownlint-rs.git
-   cd markdownlint-rs
-   mise install   # installs prek, tombi, hadolint
-   ```
+```bash
+git clone https://github.com/swanysimon/markdownlint-rs.git
+cd markdownlint-rs
+mise install   # installs prek, tombi, hadolint
+```
 
 4. **Build the project**:
 
-   ```bash
-   cargo build
-   ```
+```bash
+cargo build
+```
 
 ## Code Quality Standards
 
@@ -159,30 +161,36 @@ the linter reports it if the formatter has not been run.
 ### Adding a linting rule
 
 1. **Create the rule file**: `src/lint/rules/mdXXX.rs`
+
 2. **Implement the Rule trait**:
 
-   ```rust
-   pub struct MDXXX;
+```rust
+pub struct MDXXX;
 
-   impl Rule for MDXXX {
-       fn name(&self) -> &str { "MD###" }
-       fn description(&self) -> &str { "Your description" }
-       fn tags(&self) -> Vec<&str> { vec!["tag1", "tag2"] }
-       fn check(&self, parser: &MarkdownParser, config: Option<&Value>) -> Vec<Violation> {
-           // Implementation
-       }
-   }
-   ```
+impl Rule for MDXXX {
+    fn name(&self) -> &str { "MD###" }
+    fn description(&self) -> &str { "Your description" }
+    fn tags(&self) -> Vec<&str> { vec!["tag1", "tag2"] }
+    fn check(&self, parser: &MarkdownParser, config: Option<&Value>) -> Vec<Violation> {
+        // Implementation
+    }
+}
+```
 
-3. **Register the rule**: Add it to `create_default_registry()` in `src/lint/rule.rs`
+3. **Register the rule**: Add it to `create_default_registry()` in `src/lint/rules/mod.rs`
+
 4. **Write tests**: Add comprehensive tests in the same file
+
 5. **Mark fixable**: If `mdlint format` can fix this violation, return `true` from `fixable()`
 
 ### Adding a formatting behavior
 
-Formatter logic lives in `src/format/` (output formatters) and will live in `src/formatter/` (the
-canonical markdown rewriter, to be implemented). When adding a new canonical style choice, document
-the decision in `FORMAT_SPEC.md`.
+The canonical Markdown rewriter lives in `src/formatter/mod.rs`. It walks pulldown-cmark events and
+re-emits canonical text. Output formatters (default, JSON, SARIF, JUnit) live in `src/format/`.
+
+When adding a new canonical style choice, document the decision in `FORMAT_SPEC.md` first — the spec
+is the source of truth. Key constraints: the formatter must be idempotent (`format(format(x)) == format(x)`)
+and must not change the semantic content of the document.
 
 ### Task list
 

@@ -33,12 +33,7 @@ fn run() -> Result<bool> {
     }
 }
 
-fn run_check(
-    args: &CheckArgs,
-    config: Config,
-    use_color: bool,
-    verbose: bool,
-) -> Result<bool> {
+fn run_check(args: &CheckArgs, config: Config, use_color: bool, verbose: bool) -> Result<bool> {
     let files = find_files(&args.files(), &args.exclude, args.should_respect_ignore())?;
 
     if files.is_empty() {
@@ -160,8 +155,7 @@ fn lint_files(config: Config, files: &[PathBuf], verbose: bool) -> Result<LintRe
         if violations.is_empty() {
             lint_result.record_clean_file();
         } else {
-            let source_lines: Vec<String> =
-                content.lines().map(str::to_string).collect();
+            let source_lines: Vec<String> = content.lines().map(str::to_string).collect();
             lint_result.add_file_result(file_path.clone(), violations, source_lines);
         }
     }

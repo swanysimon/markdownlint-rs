@@ -81,11 +81,7 @@ impl Formatter for DefaultFormatter {
                         if let Some(col) = violation.column {
                             // Point at the column with a caret (col is 1-indexed)
                             let spaces = " ".repeat(col.saturating_sub(1));
-                            output.push_str(&format!(
-                                "       | {}{}\n",
-                                spaces,
-                                self.red("^")
-                            ));
+                            output.push_str(&format!("       | {}{}\n", spaces, self.red("^")));
                         }
                     }
                 }
@@ -147,7 +143,12 @@ mod tests {
         let mut result = LintResult::new();
         result.add_file_result(
             PathBuf::from("test.md"),
-            vec![make_violation(5, Some(10), "MD001", "Heading levels should increment by one")],
+            vec![make_violation(
+                5,
+                Some(10),
+                "MD001",
+                "Heading levels should increment by one",
+            )],
             vec![],
         );
         let output = formatter.format(&result);
@@ -209,7 +210,10 @@ mod tests {
             source_lines,
         );
         let output = formatter.format(&result);
-        assert!(output.contains("#Bad heading"), "snippet should appear in output");
+        assert!(
+            output.contains("#Bad heading"),
+            "snippet should appear in output"
+        );
         assert!(output.contains('^'), "caret should appear under the column");
     }
 }

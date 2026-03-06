@@ -135,8 +135,9 @@ formatter should also be marked fixable.
 - [x] Add property-based tests for the formatter using proptest: generate random strings and verify the
   formatter (1) never panics, (2) is idempotent, (3) produces output that parses as valid CommonMark.
   Proptest found two real bugs fixed in the process: empty list items had trailing whitespace; code
-  block content without a trailing newline merged with the closing fence; hard breaks using `  \n`
-  were stripped by trailing-whitespace normalisation (fixed to use `\\\n`); backslash characters in
+  block content without a trailing newline merged with the closing fence; hard breaks using
+  trailing-space newline syntax were stripped by trailing-whitespace normalisation (fixed to use
+  `\\\n`); backslash characters in
   text were not re-escaped (fixed in `on_text`).
 
 - [x] Add regression tests for all known bugs as they are discovered and fixed. Each bug gets a fixture
@@ -156,7 +157,7 @@ formatter should also be marked fixable.
   of every run, including the total files checked (not just files with violations).
 
 - [x] Add a `--verbose` flag that prints the name of each file as it is processed (`--verbose` already
-  existed in args; wired it up to print "Checking: <path>" to stderr before each file).
+  existed in args; wired it up to print the path to stderr before each file).
 
 - [x] Improve error messages with structured context: show the offending source line and a caret
   indicator under the column position beneath each violation.

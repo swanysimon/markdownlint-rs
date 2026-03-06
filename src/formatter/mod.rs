@@ -1,4 +1,4 @@
-use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, Options, Parser, Tag, TagEnd};
+use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 
 /// Format a Markdown document to canonical style.
 ///
@@ -56,6 +56,13 @@ struct FormatterState {
 
     // Link/image stack: stores (dest_url, title) from Start until End.
     link_stack: Vec<(String, String)>,
+
+    // Table state
+    table_alignments: Vec<Alignment>,
+    table_head_cells: Vec<String>,
+    table_data_rows: Vec<Vec<String>>,
+    current_row_cells: Vec<String>,
+    in_table_head: bool,
 }
 
 impl FormatterState {
@@ -70,6 +77,11 @@ impl FormatterState {
             inline: String::new(),
             in_code_block: false,
             link_stack: Vec::new(),
+            table_alignments: Vec::new(),
+            table_head_cells: Vec::new(),
+            table_data_rows: Vec::new(),
+            current_row_cells: Vec::new(),
+            in_table_head: false,
         }
     }
 
@@ -223,8 +235,23 @@ impl FormatterState {
                 self.write_bq_prefix();
                 self.out.push_str(&format!("[^{}]: ", label));
             }
-            // Tables: pass through as-is for now (TODO)
-            Tag::Table(_) | Tag::TableHead | Tag::TableRow | Tag::TableCell => {}
+            Tag::Table(alignments) => {
+                self.emit_blank_if_needed();
+                self.table_alignments = alignments.to_vec();
+                self.table_head_cells = Vec::new();
+                self.table_data_rows = Vec::new();
+                self.current_row_cells = Vec::new();
+                self.in_table_head = false;
+            }
+            Tag::TableHead => {
+                self.in_table_head = true;
+            }
+            Tag::TableRow => {
+                self.current_row_cells = Vec::new();
+            }
+            Tag::TableCell => {
+                // inline content accumulates in self.inline; flushed at End(TableCell)
+            }
             _ => {}
         }
     }
@@ -302,8 +329,62 @@ impl FormatterState {
                 self.flush_inline_text(&text, false);
                 self.needs_blank = true;
             }
-            // Tables: pass through (TODO)
-            TagEnd::Table | TagEnd::TableHead | TagEnd::TableRow | TagEnd::TableCell => {}
+            TagEnd::TableCell => {
+                let cell = std::mem::take(&mut self.inline);
+                self.current_row_cells.push(cell);
+            }
+            TagEnd::TableHead => {
+                // Cells may have been collected either via End(TableRow) inside the head
+                // or directly (if no TableRow wrapper was emitted).
+                if self.table_head_cells.is_empty() {
+                    self.table_head_cells = std::mem::take(&mut self.current_row_cells);
+                }
+                self.in_table_head = false;
+            }
+            TagEnd::TableRow => {
+                let row = std::mem::take(&mut self.current_row_cells);
+                if self.in_table_head {
+                    self.table_head_cells = row;
+                } else {
+                    self.table_data_rows.push(row);
+                }
+            }
+            TagEnd::Table => {
+                let head = std::mem::take(&mut self.table_head_cells);
+                let rows = std::mem::take(&mut self.table_data_rows);
+                let aligns = std::mem::take(&mut self.table_alignments);
+
+                // Header row
+                self.write_bq_prefix();
+                self.out.push_str("| ");
+                self.out.push_str(&head.join(" | "));
+                self.out.push_str(" |\n");
+
+                // Separator row
+                self.write_bq_prefix();
+                self.out.push_str("| ");
+                let seps: Vec<&str> = aligns
+                    .iter()
+                    .map(|a| match a {
+                        Alignment::Left => ":---",
+                        Alignment::Right => "---:",
+                        Alignment::Center => ":---:",
+                        Alignment::None => "---",
+                    })
+                    .collect();
+                self.out.push_str(&seps.join(" | "));
+                self.out.push_str(" |\n");
+
+                // Data rows
+                for row in rows {
+                    self.write_bq_prefix();
+                    self.out.push_str("| ");
+                    self.out.push_str(&row.join(" | "));
+                    self.out.push_str(" |\n");
+                }
+
+                self.needs_blank = true;
+            }
             _ => {}
         }
     }
@@ -593,6 +674,50 @@ mod tests {
         assert_eq!(format("* * *"), "---\n");
         assert_eq!(format("- - -"), "---\n");
         assert_eq!(format("_ _ _"), "---\n");
+    }
+
+    // Tables
+    #[test]
+    fn test_simple_table() {
+        let input = "| A | B |\n| --- | --- |\n| 1 | 2 |\n| 3 | 4 |\n";
+        let output = format(input);
+        assert_eq!(output, "| A | B |\n| --- | --- |\n| 1 | 2 |\n| 3 | 4 |\n");
+    }
+
+    #[test]
+    fn test_table_no_leading_pipes() {
+        // GFM allows tables without leading/trailing pipes
+        let input = "A | B\n--- | ---\n1 | 2\n";
+        let output = format(input);
+        assert_eq!(output, "| A | B |\n| --- | --- |\n| 1 | 2 |\n");
+    }
+
+    #[test]
+    fn test_table_idempotent() {
+        let input = "| A | B |\n| --- | --- |\n| 1 | 2 |\n";
+        let once = format(input);
+        let twice = format(&once);
+        assert_eq!(once, twice);
+    }
+
+    #[test]
+    fn test_table_with_inline_formatting() {
+        let input = "| **bold** | `code` |\n| --- | --- |\n| *em* | plain |\n";
+        let output = format(input);
+        assert_eq!(
+            output,
+            "| **bold** | `code` |\n| --- | --- |\n| *em* | plain |\n"
+        );
+    }
+
+    #[test]
+    fn test_table_followed_by_paragraph() {
+        let input = "| A | B |\n| --- | --- |\n| 1 | 2 |\n\nSome text.\n";
+        let output = format(input);
+        assert_eq!(
+            output,
+            "| A | B |\n| --- | --- |\n| 1 | 2 |\n\nSome text.\n"
+        );
     }
 
     // Idempotency: format(format(x)) == format(x)
