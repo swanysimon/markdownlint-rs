@@ -16,7 +16,13 @@ pub fn format(input: &str) -> String {
     let mut state = FormatterState::new();
     let events: Vec<Event<'_>> = Parser::new_ext(input, mk_options()).collect();
 
-    for event in events {
+    // Precompute per-event lookahead: is the *next* event Start(List(None))?
+    let lookahead: Vec<bool> = (0..events.len())
+        .map(|i| matches!(events.get(i + 1), Some(Event::Start(Tag::List(None)))))
+        .collect();
+
+    for (event, next_is_ul) in events.into_iter().zip(lookahead) {
+        state.next_is_unordered_list = next_is_ul;
         state.process(event);
     }
 
@@ -57,6 +63,11 @@ struct FormatterState {
     // Link/image stack: stores (dest_url, title) from Start until End.
     link_stack: Vec<(String, String)>,
 
+    // Set by the outer format() loop before each event: true when the
+    // immediately following event is Start(List(None)).  Used to detect
+    // two adjacent unordered lists so we can insert a separator.
+    next_is_unordered_list: bool,
+
     // Table state
     table_alignments: Vec<Alignment>,
     table_head_cells: Vec<String>,
@@ -77,6 +88,7 @@ impl FormatterState {
             inline: String::new(),
             in_code_block: false,
             link_stack: Vec::new(),
+            next_is_unordered_list: false,
             table_alignments: Vec::new(),
             table_head_cells: Vec::new(),
             table_data_rows: Vec::new(),
@@ -189,7 +201,8 @@ impl FormatterState {
                     // (e.g. `Text("Item 1")` in `- Item 1\n  - Nested`).
                     if self.in_tight_item && !self.inline.is_empty() {
                         let text = std::mem::take(&mut self.inline);
-                        self.flush_inline_text(&text, false);
+                        let prefix = "  ".repeat(self.list_depth);
+                        self.flush_inline_text(&text, &prefix);
                         self.in_tight_item = false;
                     }
                 }
@@ -270,7 +283,8 @@ impl FormatterState {
                 if self.list_depth == 0 {
                     self.write_bq_prefix();
                 }
-                self.flush_inline_text(&text, false);
+                let prefix = "  ".repeat(self.list_depth);
+                self.flush_inline_text(&text, &prefix);
                 self.needs_blank = true;
                 self.in_tight_item = false;
             }
@@ -296,7 +310,16 @@ impl FormatterState {
                 self.list_depth -= 1;
                 self.list_starts.pop();
                 if self.list_depth == 0 {
-                    self.needs_blank = true;
+                    if self.next_is_unordered_list {
+                        // Two adjacent unordered lists would merge into one on
+                        // re-parse (both normalise to `-`). Insert an invisible
+                        // HTML comment to keep them separate.
+                        self.needs_blank = false;
+                        self.out.push_str("\n<!---->\n");
+                        self.needs_blank = true;
+                    } else {
+                        self.needs_blank = true;
+                    }
                 }
             }
             TagEnd::Item => {
@@ -304,7 +327,8 @@ impl FormatterState {
                 if self.in_tight_item {
                     let text = std::mem::take(&mut self.inline);
                     if !text.is_empty() {
-                        self.flush_inline_text(&text, false);
+                        let prefix = "  ".repeat(self.list_depth);
+                        self.flush_inline_text(&text, &prefix);
                     }
                     self.in_tight_item = false;
                 }
@@ -336,7 +360,7 @@ impl FormatterState {
             }
             TagEnd::FootnoteDefinition => {
                 let text = std::mem::take(&mut self.inline);
-                self.flush_inline_text(&text, false);
+                self.flush_inline_text(&text, "");
                 self.needs_blank = true;
             }
             TagEnd::TableCell => {
@@ -419,6 +443,11 @@ impl FormatterState {
 
     fn emit_blank_if_needed(&mut self) {
         if self.needs_blank && !self.out.is_empty() {
+            if self.bq_depth > 0 {
+                // Inside a blockquote, the separator line must carry the `>`
+                // marker so the parser keeps both paragraphs in the same block.
+                self.out.push_str(&">".repeat(self.bq_depth));
+            }
             self.out.push('\n');
         }
         self.needs_blank = false;
@@ -433,11 +462,20 @@ impl FormatterState {
     /// Flush inline text to output.
     /// Each line in `text` gets the blockquote prefix prepended (except the first,
     /// which follows whatever was already written on the current output line).
-    fn flush_inline_text(&mut self, text: &str, _continuation_indent: bool) {
+    fn flush_inline_text(&mut self, text: &str, continuation_prefix: &str) {
         let bq = "> ".repeat(self.bq_depth);
         let mut lines = text.split('\n').peekable();
 
         if let Some(first) = lines.next() {
+            // When we are at the start of a new line (e.g. first paragraph in
+            // a blockquote), emit the blockquote prefix before the content.
+            if self.bq_depth > 0 && (self.out.ends_with('\n') || self.out.is_empty()) {
+                self.out.push_str(&bq);
+            }
+            // Escape a leading `>` so the line is not re-parsed as a blockquote.
+            if first.starts_with('>') {
+                self.out.push('\\');
+            }
             self.out.push_str(first);
             self.out.push('\n');
         }
@@ -447,7 +485,12 @@ impl FormatterState {
                 // Trailing empty string from split: don't emit an extra newline.
                 break;
             }
+            self.out.push_str(continuation_prefix);
             self.out.push_str(&bq);
+            // Escape a leading `>` so the line is not re-parsed as a blockquote.
+            if line.starts_with('>') {
+                self.out.push('\\');
+            }
             self.out.push_str(line);
             self.out.push('\n');
         }

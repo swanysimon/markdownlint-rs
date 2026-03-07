@@ -84,7 +84,7 @@ fn run_format(args: &FormatArgs, _config: Config) -> Result<bool> {
         }
     }
 
-    Ok(any_changed)
+    Ok(args.check && any_changed)
 }
 
 fn load_config(cli: &Cli) -> Result<Config> {
