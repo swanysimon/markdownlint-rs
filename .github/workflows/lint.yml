@@ -19,9 +19,31 @@ jobs:
         with:
           cache-key: "lint"
 
-
       - name: Install mise
         uses: jdx/mise-action@v3
 
       - name: Run checks
         run: prek run --all-files --verbose --hook-stage manual
+
+  docker-dogfood:
+    name: Docker dogfood
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: mdlint:dogfood
+          cache-from: type=gha,scope=docker-dogfood
+          cache-to: type=gha,mode=max,scope=docker-dogfood
+
+      - name: Run dogfood check
+        run: docker run --rm -v "$PWD:/workspace" mdlint:dogfood check
