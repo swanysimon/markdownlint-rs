@@ -1,4 +1,4 @@
-# markdownlint-rs
+# mdlint
 
 @README.md
 

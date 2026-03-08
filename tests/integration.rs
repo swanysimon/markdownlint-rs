@@ -1,6 +1,6 @@
-use markdownlint_rs::config::Config;
-use markdownlint_rs::formatter;
-use markdownlint_rs::lint::LintEngine;
+use mdlint::config::Config;
+use mdlint::formatter;
+use mdlint::lint::LintEngine;
 use std::fs;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

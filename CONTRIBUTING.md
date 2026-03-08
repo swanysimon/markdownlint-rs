@@ -1,6 +1,6 @@
-# Contributing to markdownlint-rs
+# Contributing to mdlint
 
-Thank you for your interest in contributing to markdownlint-rs!
+Thank you for your interest in contributing to mdlint!
 
 ## Development Setup
 
@@ -14,8 +14,8 @@ Docker is needed for Dockerfile linting. mise manages every other tool automatic
 3. **Clone the repository and install tools**:
 
 ```bash
-git clone https://github.com/swanysimon/markdownlint-rs.git
-cd markdownlint-rs
+git clone https://github.com/swanysimon/mdlint.git
+cd mdlint
 mise install   # installs prek, tombi, hadolint
 ```
 

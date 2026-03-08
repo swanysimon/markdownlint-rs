@@ -1,4 +1,4 @@
-use markdownlint_rs::formatter;
+use mdlint::formatter;
 use std::fs;
 use std::process::Command;
 use tempfile::TempDir;

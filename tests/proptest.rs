@@ -1,4 +1,4 @@
-use markdownlint_rs::formatter;
+use mdlint::formatter;
 use proptest::prelude::*;
 
 proptest! {

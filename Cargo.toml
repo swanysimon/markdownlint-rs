@@ -5,9 +5,13 @@ edition = "2024"
 authors = ["Simon Swanson"]
 description = "A fast, flexible, configuration-based command-line interface for linting Markdown/CommonMark files"
 license = "MIT"
-repository = "https://github.com/swanysimon/markdownlint-rs"
+repository = "https://github.com/swanysimon/mdlint"
 keywords = ["cli", "formatter", "lint", "markdown"]
 categories = ["command-line-utilities", "development-tools"]
+
+[lib]
+name = "mdlint"
+path = "src/lib.rs"
 
 [[bin]]
 name = "mdlint"

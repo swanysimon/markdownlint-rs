@@ -1,6 +1,6 @@
-# markdownlint-rs
+# mdlint
 
-[![CI](https://github.com/swanysimon/markdownlint-rs/workflows/CI/badge.svg)](https://github.com/swanysimon/markdownlint-rs/actions/workflows/ci.yml?query=branch%3Amain)
+[![CI](https://github.com/swanysimon/mdlint/workflows/CI/badge.svg)](https://github.com/swanysimon/mdlint/actions/workflows/ci.yml?query=branch%3Amain)
 [![Crates.io](https://img.shields.io/crates/v/markdownlint-rs.svg)](https://crates.io/crates/markdownlint-rs)
 
 An opinionated Markdown formatter and linter, written in Rust.
@@ -22,19 +22,19 @@ Run `mdlint format` and stop thinking about it.
 
 ## Installation
 
-Efforts to make markdownlint-rs available via [Homebrew](https://brew.sh) and other package managers is planned. For
+Efforts to make mdlint available via [Homebrew](https://brew.sh) and other package managers is planned. For
 now, pick between downloading binaries from GitHub releases, pulling from
 [crates.io](https://crates.io/crates/markdownlint-rs), or using a
-[Docker container](https://github.com/swanysimon/markdownlint-rs/pkgs/container/markdownlint-rs).
+[Docker container](https://github.com/swanysimon/mdlint/pkgs/container/mdlint).
 
 ### From GitHub Releases (Recommended)
 
 Download the latest release for your platform from the
-[releases page](https://github.com/swanysimon/markdownlint-rs/releases), or download the binary via the command line.
+[releases page](https://github.com/swanysimon/mdlint/releases), or download the binary via the command line.
 For example, to download the latest Linux x86_64 build:
 
 ```shell
-curl -LO https://github.com/swanysimon/markdownlint-rs/releases/latest/download/mdlint-linux-x86_64.tar.gz
+curl -LO https://github.com/swanysimon/mdlint/releases/latest/download/mdlint-linux-x86_64.tar.gz
 tar xzf mdlint-linux-x86_64.tar.gz
 
 # verify checksum
@@ -54,10 +54,10 @@ cargo install markdownlint-rs
 
 ```shell
 # check files in the current directory
-docker run --rm -v "$PWD:/workspace" ghcr.io/swanysimon/markdownlint-rs:latest check
+docker run --rm -v "$PWD:/workspace" ghcr.io/swanysimon/mdlint:latest check
 
 # format files in the current directory
-docker run --rm -v "$PWD:/workspace" ghcr.io/swanysimon/markdownlint-rs:latest format
+docker run --rm -v "$PWD:/workspace" ghcr.io/swanysimon/mdlint:latest format
 ```
 
 The Docker image supports both `linux/amd64` and `linux/arm64` platforms.
@@ -65,8 +65,8 @@ The Docker image supports both `linux/amd64` and `linux/arm64` platforms.
 ### From source
 
 ```shell
-git clone https://github.com/swanysimon/markdownlint-rs.git
-cd markdownlint-rs
+git clone https://github.com/swanysimon/mdlint.git
+cd mdlint
 cargo build --release
 sudo cp target/release/mdlint /usr/local/bin/
 ```
@@ -193,7 +193,7 @@ mdlint check --verbose
 
 ## Configuration
 
-markdownlint-rs uses TOML configuration files, similar to how ruff uses `ruff.toml`.
+mdlint uses TOML configuration files, similar to how ruff uses `ruff.toml`.
 The tool automatically discovers configuration files by searching up from the current directory.
 
 ### Configuration File Locations
@@ -372,7 +372,7 @@ Add to `.pre-commit-config.yaml`:
 
 ```yaml
 repos:
-  - repo: https://github.com/swanysimon/markdownlint-rs
+  - repo: https://github.com/swanysimon/mdlint
     rev: v0.3.0  # use the latest release tag
     hooks:
       - id: mdlint-format-check
@@ -427,7 +427,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## Resources
 
-- [Documentation](https://github.com/swanysimon/markdownlint-rs/tree/main/.github)
-- [Issue Tracker](https://github.com/swanysimon/markdownlint-rs/issues)
-- [Changelog](https://github.com/swanysimon/markdownlint-rs/releases)
+- [Documentation](https://github.com/swanysimon/mdlint/tree/main/.github)
+- [Issue Tracker](https://github.com/swanysimon/mdlint/issues)
+- [Changelog](https://github.com/swanysimon/mdlint/releases)
 - [markdownlint Rules Reference](https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md)
