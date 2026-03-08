@@ -27,7 +27,7 @@ cargo build
 
 ## Code Quality Standards
 
-All quality checks are managed by [prek](https://github.com/your-org/prek) and defined in `prek.toml`.
+All quality checks are managed by `prek` and defined in `prek.toml`.
 To run all checks locally (the same checks CI runs):
 
 ```bash
@@ -129,7 +129,6 @@ The release workflow includes automatic version verification:
 Before creating a release:
 
 - [ ] All checks pass locally: `prek run -a`
-- [ ] CHANGELOG.md is updated (if you maintain one)
 - [ ] Version follows [SemVer](https://semver.org/) conventions:
   - **MAJOR**: Incompatible API changes
   - **MINOR**: New backwards-compatible functionality

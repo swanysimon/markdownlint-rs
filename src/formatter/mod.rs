@@ -472,8 +472,8 @@ impl FormatterState {
             if self.bq_depth > 0 && (self.out.ends_with('\n') || self.out.is_empty()) {
                 self.out.push_str(&bq);
             }
-            // Escape a leading `>` so the line is not re-parsed as a blockquote.
-            if first.starts_with('>') {
+            // Escape leading characters that would be re-parsed as structural elements.
+            if needs_line_escape(first) {
                 self.out.push('\\');
             }
             self.out.push_str(first);
@@ -487,8 +487,8 @@ impl FormatterState {
             }
             self.out.push_str(continuation_prefix);
             self.out.push_str(&bq);
-            // Escape a leading `>` so the line is not re-parsed as a blockquote.
-            if line.starts_with('>') {
+            // Escape leading characters that would be re-parsed as structural elements.
+            if needs_line_escape(line) {
                 self.out.push('\\');
             }
             self.out.push_str(line);
@@ -510,6 +510,29 @@ impl FormatterState {
         }
         format!("{}\n", trimmed)
     }
+}
+
+/// Returns true if `line` starts with a sequence that would be re-interpreted
+/// as a structural Markdown element (blockquote, list marker, ATX heading) on
+/// re-parse, and therefore needs a leading `\` escape.
+fn needs_line_escape(line: &str) -> bool {
+    // Blockquote marker
+    if line.starts_with('>') {
+        return true;
+    }
+    // Unordered list marker: *, -, or + followed by space/tab or end of line
+    if let Some(rest) = line.strip_prefix(['*', '-', '+'])
+        && (rest.is_empty() || rest.starts_with([' ', '\t']))
+    {
+        return true;
+    }
+    // ATX heading: one or more # followed by space or end of line
+    let after_hashes = line.trim_start_matches('#');
+    if after_hashes.len() < line.len() && (after_hashes.is_empty() || after_hashes.starts_with(' '))
+    {
+        return true;
+    }
+    false
 }
 
 fn heading_to_u8(level: HeadingLevel) -> u8 {
@@ -771,6 +794,27 @@ mod tests {
             output,
             "| A | B |\n| --- | --- |\n| 1 | 2 |\n\nSome text.\n"
         );
+    }
+
+    // Structural escape: text that starts with a structural character must be escaped
+    #[test]
+    fn test_escaped_list_marker_in_paragraph() {
+        // \* in source resolves to literal *, which must not become a list item
+        let once = format("\\*");
+        let twice = format(&once);
+        assert_eq!(once, twice, "idempotency: escaped asterisk");
+        // Similarly for - and +
+        let once = format("\\-");
+        let twice = format(&once);
+        assert_eq!(once, twice, "idempotency: escaped dash");
+    }
+
+    #[test]
+    fn test_escaped_heading_in_paragraph() {
+        // \# in source resolves to literal #, which must not become an ATX heading
+        let once = format("\\# not a heading");
+        let twice = format(&once);
+        assert_eq!(once, twice, "idempotency: escaped hash");
     }
 
     // Idempotency: format(format(x)) == format(x)

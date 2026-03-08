@@ -303,7 +303,7 @@ This line may be longer than the configured limit.
 ```
 
 | Comment | Effect |
-| ------- | ------ |
+| --- | --- |
 | `<!-- mdlint-disable MD001 -->` | Disable rule from this line onward |
 | `<!-- mdlint-enable MD001 -->` | Re-enable rule from this line onward |
 | `<!-- mdlint-disable-next-line MD001 -->` | Disable rule for the next line only |
@@ -335,7 +335,7 @@ mdlint implements the [markdownlint](https://github.com/DavidAnson/markdownlint)
 ✅ are enforced automatically by `mdlint format`; rules marked ❌ are reported by `mdlint check` only.
 
 | Rule | Description | Format fixes |
-| ---- | ----------- | ------------ |
+| --- | --- | --- |
 | MD001 | Heading levels should only increment by one level at a time | ❌ |
 | MD003 | Heading style | ✅ |
 | MD004 | Unordered list style | ✅ |
@@ -373,7 +373,7 @@ Add to `.pre-commit-config.yaml`:
 ```yaml
 repos:
   - repo: https://github.com/swanysimon/mdlint
-    rev: v0.3.0  # use the latest release tag
+    rev: v0.3.3  # use the latest release tag
     hooks:
       - id: mdlint-format-check
         name: mdlint format --check

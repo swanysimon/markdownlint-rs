@@ -9,17 +9,16 @@ is secondary.
 ## Key Files
 
 - `AIDEV.md` — task checklist as AI-addressable prompts (authoritative source of truth for work)
-- `CLAUDE.md` — lessons learned and architecture notes for AI context (kept concise, ~100 lines)
-- `IMPROVEMENTS.md` — redirect to AIDEV.md (deprecated)
-- `FORMAT_SPEC.md` — does not exist yet; needs to be written (Priority 1 task in AIDEV.md)
+- `CLAUDE.md` — lessons learned and architecture notes for AI context (kept concise, ~200 line limit)
+- `FORMAT_SPEC.md` — canonical formatter style decisions; source of truth for formatter behavior
 
 ## Architecture
 
 - Config: TOML (`mdlint.toml` / `.mdlint.toml`), hierarchical discovery
 - File discovery: `ignore` crate (gitignore-aware)
 - Markdown parsing: `pulldown-cmark` wrapper in `src/markdown/`
-- Rules: `src/lint/rules/md*.rs`, registered in `create_default_registry()`
-- Many rules exist beyond what old CLAUDE.md docs listed — check `src/lint/rules/` directly
+- Formatter: `src/formatter/mod.rs` (canonical rewriter); `src/format/` (output formatters — different concerns)
+- Rules: `src/lint/rules/md*.rs` through md060 (MD057 deliberately absent), registered in `create_default_registry()`
 
 ## Tooling
 

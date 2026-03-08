@@ -27,6 +27,7 @@ src/
   lint/                  # Rule trait, registry, engine, Violation type
     rules/               # Individual rule implementations (md001.rs, etc.)
   fix/                   # Auto-fix framework
+  formatter/             # Canonical markdown rewriter (mdlint format)
   format/                # Output formatters (default, JSON, JUnit, SARIF)
   logger/                # Log level handling
   error.rs / types.rs    # Shared types and error definitions
@@ -60,6 +61,17 @@ src/
 - Registry pattern: `HashMap`-based with `create_default_registry()`
 - Rules parse their own config from `Option<&Value>`
 
+### Formatter
+
+- Architecture: emit canonical text directly from pulldown-cmark events; no separate IR needed
+- State machine tracks previous block type and inserts blank lines before each new block element
+- Idempotency is a hard requirement: `format(format(x)) == format(x)`; proptest found real bugs
+- Hard line breaks: trailing-space syntax (two spaces + `\n`) must become backslash continuation
+  (`\\\n`) before trailing-whitespace stripping, otherwise the line break is lost
+- `src/formatter/mod.rs` = canonical markdown rewriter; `src/format/` = output formatters
+  (JSON, SARIF, JUnit, default) — different concerns, different directories
+- Raw HTML blocks and code block contents are passed through verbatim
+
 ### Code Quality
 
 - All checks run via `prek run -a` (defined in `prek.toml`), managed by `mise` (`mise.toml`)
@@ -73,6 +85,8 @@ src/
 - Test business logic, not libraries — focus on merge algorithms, discovery patterns, rule logic
 - `cargo test --lib` for unit tests via `src/lib.rs`; `tests/compatibility.rs` for Docker-based tests
 - Compatibility tests skip gracefully when Docker is unavailable
+- Property-based tests via `proptest`: generate random strings, verify formatter never panics, is
+  idempotent, and produces valid CommonMark
 
 ### CI/CD Architecture
 
@@ -91,6 +105,7 @@ src/
 
 ## References
 
+- [FORMAT_SPEC.md](FORMAT_SPEC.md) — canonical formatter style decisions (source of truth)
 - [markdownlint rules](https://github.com/DavidAnson/markdownlint)
 - [mdformat](https://github.com/hukkin/mdformat) — formatter-first inspiration
 - [pulldown-cmark](https://github.com/raphlinus/pulldown-cmark) — Markdown parser

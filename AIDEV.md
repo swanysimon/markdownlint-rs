@@ -64,7 +64,7 @@ text. This is what makes mdlint a formatter rather than a linter with `--fix`.
 - [x] Implement list marker canonicalization: always use dashes (`- item`), never asterisks or plus
   signs. MD004-equivalent.
 
-- [x] Implement code fence canonicalization: always use backticks (` ``` `), never tildes (`~~~`).
+- [x] Implement code fence canonicalization: always use backticks (```` ``` ````), never tildes (`~~~`).
   MD048-equivalent.
 
 - [x] Implement emphasis marker canonicalization: always use asterisks (`*text*`, `**text**`), never
@@ -166,7 +166,7 @@ formatter should also be marked fixable.
 
 ## Priority 6: Distribution
 
-- [ ] Publish first release to crates.io by setting the `CARGO_REGISTRY_TOKEN` GitHub Actions secret
+- [x] Publish first release to crates.io by setting the `CARGO_REGISTRY_TOKEN` GitHub Actions secret
   and running `cargo release patch --execute`.
 
 - [ ] Write a Homebrew formula in a tap repository so macOS and Linux users can install with
