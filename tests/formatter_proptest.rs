@@ -13,7 +13,7 @@ proptest! {
     fn formatter_is_idempotent(s in ".*") {
         let once = formatter::format(&s);
         let twice = formatter::format(&once);
-        prop_assert_eq!(once, twice);
+        prop_assert_eq!(once, twice, "formatter not idempotent on input: {:?}", s);
     }
 
     /// The formatted output must end with exactly one newline (or be empty).

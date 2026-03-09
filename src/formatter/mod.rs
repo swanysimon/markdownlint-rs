@@ -295,7 +295,10 @@ impl FormatterState {
                 // Trim whitespace: pulldown-cmark strips leading/trailing ASCII
                 // whitespace (including VT U+000B) from ATX heading content on
                 // re-parse, so emitting it would break idempotency.
-                self.out.push_str(&format!("{} {}\n", hashes, text.trim()));
+                // Also collapse embedded newlines (soft breaks from multi-line
+                // setext headings) to spaces — ATX headings are single-line.
+                let heading_text = text.trim().replace('\n', " ");
+                self.out.push_str(&format!("{} {}\n", hashes, heading_text));
                 self.needs_blank = true;
             }
             TagEnd::CodeBlock => {
@@ -501,13 +504,24 @@ impl FormatterState {
 
     fn finish(mut self) -> String {
         let s = std::mem::take(&mut self.out);
-        // Strip trailing whitespace from each line, then normalise to exactly one trailing newline.
-        let cleaned: String = s
-            .lines()
-            .map(|l| l.trim_end())
-            .collect::<Vec<_>>()
-            .join("\n");
-        let trimmed = cleaned.trim_end_matches('\n');
+        // Strip trailing whitespace from each line, collapse consecutive blank
+        // lines to one (MD012), and normalise to exactly one trailing newline.
+        let mut result: Vec<&str> = Vec::new();
+        let mut prev_blank = false;
+        for line in s.lines() {
+            let line = line.trim_end();
+            if line.is_empty() {
+                if !prev_blank {
+                    result.push(line);
+                }
+                prev_blank = true;
+            } else {
+                result.push(line);
+                prev_blank = false;
+            }
+        }
+        let joined = result.join("\n");
+        let trimmed = joined.trim_end_matches('\n');
         if trimmed.is_empty() {
             return String::new();
         }
@@ -516,25 +530,88 @@ impl FormatterState {
 }
 
 /// Returns true if `line` starts with a sequence that would be re-interpreted
-/// as a structural Markdown element (blockquote, list marker, ATX heading) on
-/// re-parse, and therefore needs a leading `\` escape.
+/// as a structural Markdown block element on re-parse, and therefore needs a
+/// leading `\` escape.  This matters for first lines of paragraphs and for
+/// soft-break continuation lines that are emitted as separate output lines.
 fn needs_line_escape(line: &str) -> bool {
+    if line.is_empty() {
+        return false;
+    }
+
     // Blockquote marker
     if line.starts_with('>') {
         return true;
     }
-    // Unordered list marker: *, -, or + followed by space/tab or end of line
+
+    // Unordered list marker: *, -, or + followed by space/tab or end of line.
+    // Also catches thematic breaks that start with * or - (e.g. `* * *`, `- - -`).
     if let Some(rest) = line.strip_prefix(['*', '-', '+'])
         && (rest.is_empty() || rest.starts_with([' ', '\t']))
     {
         return true;
     }
+
+    // Thematic break: three or more of the same char (-, *, _) with optional spaces.
+    // Catches `---`, `___`, `* * *`, etc.  The * and - cases with trailing space are
+    // already caught above; this covers `---` and `___` and variants without spaces.
+    {
+        let first = line.chars().next().unwrap();
+        if matches!(first, '-' | '*' | '_') {
+            let all_valid = line.chars().all(|c| c == first || c == ' ' || c == '\t');
+            let count = line.chars().filter(|&c| c == first).count();
+            if all_valid && count >= 3 {
+                return true;
+            }
+        }
+    }
+
     // ATX heading: one or more # followed by space or end of line
     let after_hashes = line.trim_start_matches('#');
     if after_hashes.len() < line.len() && (after_hashes.is_empty() || after_hashes.starts_with(' '))
     {
         return true;
     }
+
+    // Ordered list marker: one or more ASCII digits followed by . or ) and then space/tab/end
+    {
+        let digits: String = line.chars().take_while(|c| c.is_ascii_digit()).collect();
+        if !digits.is_empty() {
+            let rest = &line[digits.len()..];
+            if let Some(after_marker) = rest.strip_prefix(['.', ')'])
+                && (after_marker.is_empty() || after_marker.starts_with([' ', '\t']))
+            {
+                return true;
+            }
+        }
+    }
+
+    // HTML block openers:
+    // Type 2: <!--
+    // Type 3: <?
+    // Type 4: <! followed by an ASCII uppercase letter
+    // Type 5: <![CDATA[
+    if line.starts_with("<!--") || line.starts_with("<?") || line.starts_with("<![CDATA[") {
+        return true;
+    }
+    if let Some(rest) = line.strip_prefix("<!")
+        && rest.starts_with(|c: char| c.is_ascii_uppercase())
+    {
+        return true;
+    }
+    // Type 1: <script, <pre, <style, <textarea (case-insensitive) + whitespace / > / end
+    let lower: String = line
+        .chars()
+        .take(12)
+        .collect::<String>()
+        .to_ascii_lowercase();
+    for tag in &["<script", "<pre", "<style", "<textarea"] {
+        if let Some(rest) = lower.strip_prefix(tag)
+            && (rest.is_empty() || rest.starts_with([' ', '\t', '>']))
+        {
+            return true;
+        }
+    }
+
     false
 }
 

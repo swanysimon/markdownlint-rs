@@ -1,3 +1,4 @@
+default_install_hook_types = ["pre-commit", "pre-push"]
 fail_fast = true
 
 [[repos]]
@@ -5,9 +6,11 @@ repo = "builtin"
 
 [[repos.hooks]]
 id = "trailing-whitespace"
+prority = 1
 
 [[repos.hooks]]
 id = "check-yaml"
+priority = 2
 
 [[repos]]
 repo = "local"
@@ -19,6 +22,7 @@ entry = "tombi check"
 language = "system"
 pass_filenames = false
 types = ["toml"]
+priority = 2
 
 [[repos.hooks]]
 id = "tombi-fmt"
@@ -27,46 +31,7 @@ entry = "tombi format"
 language = "system"
 pass_filenames = false
 types = ["toml"]
-
-[[repos.hooks]]
-id = "clippy"
-name = "clippy"
-entry = "cargo clippy --fix --allow-dirty --all-targets --all-features -- -D warnings"
-language = "system"
-pass_filenames = false
-types = ["rust"]
-
-[[repos.hooks]]
-id = "rustfmt"
-name = "format rust"
-entry = "cargo fmt -- --files-with-diff"
-language = "system"
-pass_filenames = false
-types = ["rust"]
-
-[[repos.hooks]]
-id = "test"
-name = "test rust"
-entry = "cargo test"
-language = "system"
-pass_filenames = false
-types = ["rust"]
-
-[[repos.hooks]]
-id = "mdlint-check"
-name = "check markdown rules (dogfood)"
-entry = "cargo run -- check"
-language = "system"
-pass_filenames = false
-types = ["rust"]
-
-[[repos.hooks]]
-id = "mdlint-format"
-name = "check markdown formatting (dogfood)"
-entry = "cargo run -- format"
-language = "system"
-pass_filenames = false
-types = ["rust"]
+priority = 3
 
 [[repos.hooks]]
 id = "hadolint"
@@ -74,6 +39,7 @@ name = "check dockerfile"
 entry = "hadolint"
 language = "system"
 files = "^Dockerfile$"
+priority = 2
 
 [[repos.hooks]]
 id = "actionlint"
@@ -82,3 +48,50 @@ entry = "actionlint"
 language = "system"
 pass_filenames = false
 files = "^.github/"
+priority = 3
+
+[[repos.hooks]]
+id = "clippy"
+name = "clippy"
+entry = "cargo clippy --fix --allow-dirty --all-targets"
+language = "system"
+pass_filenames = false
+types = ["rust"]
+priority = 3
+
+[[repos.hooks]]
+id = "rustfmt"
+name = "format rust"
+entry = "cargo fmt -- --files-with-diff"
+language = "system"
+pass_filenames = false
+types = ["rust"]
+priority = 4
+
+[[repos.hooks]]
+id = "mdlint-check"
+name = "check markdown rules (dogfood)"
+entry = "cargo run -- check"
+language = "system"
+pass_filenames = false
+types_or = ["markdown", "rust"]
+priority = 10
+
+[[repos.hooks]]
+id = "mdlint-format"
+name = "check markdown formatting (dogfood)"
+entry = "cargo run -- format"
+language = "system"
+pass_filenames = false
+types_or = ["markdown", "rust"]
+priority = 11
+
+[[repos.hooks]]
+id = "test"
+name = "test rust"
+entry = "cargo test"
+language = "system"
+pass_filenames = false
+types_or = ["markdown", "rust"]
+stages = ["manual", "pre-push"]
+priority = 12
