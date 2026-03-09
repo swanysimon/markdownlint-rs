@@ -53,13 +53,33 @@ impl Rule for MD032 {
                     if line_num > 0 {
                         let prev_line = &lines[line_num - 1];
                         if !prev_line.trim().is_empty() {
-                            violations.push(Violation {
-                                line: line_num + 1,
-                                column: Some(1),
-                                rule: self.name().to_string(),
-                                message: "List should be surrounded by blank lines".to_string(),
-                                fix: None,
-                            });
+                            // Detect broken ordered list continuation: a line that
+                            // looks like an ordered list item (e.g. "6.") following
+                            // non-list text won't be parsed as a list item because
+                            // only "1." can interrupt a paragraph (CommonMark §5.2).
+                            if marker == ListMarker::Ordered && !starts_with_one(trimmed) {
+                                // Report on the interrupting line (previous line),
+                                // not the list-like line — that's where the break is.
+                                violations.push(Violation {
+                                    line: line_num, // previous line (0-indexed → 1-indexed)
+                                    column: Some(1),
+                                    rule: self.name().to_string(),
+                                    message:
+                                        "Line breaks ordered list continuation; subsequent \
+                                         numbered items are parsed as text, not list items"
+                                            .to_string(),
+                                    fix: None,
+                                });
+                            } else {
+                                violations.push(Violation {
+                                    line: line_num + 1,
+                                    column: Some(1),
+                                    rule: self.name().to_string(),
+                                    message: "List should be surrounded by blank lines"
+                                        .to_string(),
+                                    fix: None,
+                                });
+                            }
                         }
                     }
                 } else if Some(marker) != current_marker {
@@ -131,6 +151,13 @@ impl Rule for MD032 {
     }
 }
 
+/// Returns true if the line starts with `1.` or `1)` (the only ordered marker
+/// that can interrupt a paragraph in CommonMark).
+fn starts_with_one(trimmed: &str) -> bool {
+    let check = trimmed.strip_prefix('\\').unwrap_or(trimmed);
+    check.starts_with("1. ") || check.starts_with("1) ")
+}
+
 fn get_list_marker(trimmed: &str) -> Option<ListMarker> {
     // Check for unordered list markers
     if trimmed.starts_with("* ") {
@@ -143,9 +170,14 @@ fn get_list_marker(trimmed: &str) -> Option<ListMarker> {
         return Some(ListMarker::Dash);
     }
 
-    // Check for ordered list markers
-    if let Some(dot_pos) = trimmed.find(". ") {
-        let prefix = &trimmed[..dot_pos];
+    // Check for ordered list markers (also detect escaped markers like \6.)
+    let check = if let Some(stripped) = trimmed.strip_prefix('\\') {
+        stripped
+    } else {
+        trimmed
+    };
+    if let Some(dot_pos) = check.find(". ") {
+        let prefix = &check[..dot_pos];
         if !prefix.is_empty() && prefix.chars().all(|c| c.is_ascii_digit()) {
             return Some(ListMarker::Ordered);
         }

@@ -480,7 +480,7 @@ impl FormatterState {
                 self.out.push_str(&bq);
             }
             // Escape leading characters that would be re-parsed as structural elements.
-            if needs_line_escape(first) {
+            if needs_line_escape(first, false) {
                 self.out.push('\\');
             }
             self.out.push_str(first);
@@ -495,7 +495,8 @@ impl FormatterState {
             self.out.push_str(continuation_prefix);
             self.out.push_str(&bq);
             // Escape leading characters that would be re-parsed as structural elements.
-            if needs_line_escape(line) {
+            // Use continuation mode: only `1.` needs escaping (CommonMark §5.2).
+            if needs_line_escape(line, true) {
                 self.out.push('\\');
             }
             self.out.push_str(line);
@@ -534,7 +535,12 @@ impl FormatterState {
 /// as a structural Markdown block element on re-parse, and therefore needs a
 /// leading `\` escape.  This matters for first lines of paragraphs and for
 /// soft-break continuation lines that are emitted as separate output lines.
-fn needs_line_escape(line: &str) -> bool {
+///
+/// When `is_continuation` is true, the line is a soft-break continuation
+/// inside a paragraph.  In CommonMark only `1.` / `1)` can interrupt a
+/// paragraph, so other ordered-list markers (2., 6., etc.) must NOT be
+/// escaped — escaping them hides real formatting problems from the linter.
+fn needs_line_escape(line: &str, is_continuation: bool) -> bool {
     if line.is_empty() {
         return false;
     }
@@ -573,7 +579,9 @@ fn needs_line_escape(line: &str) -> bool {
         return true;
     }
 
-    // Ordered list marker: one or more ASCII digits followed by . or ) and then space/tab/end
+    // Ordered list marker: one or more ASCII digits followed by . or ) and then space/tab/end.
+    // On continuation lines only `1.` / `1)` can interrupt a paragraph (CommonMark spec §5.2),
+    // so we must not escape other numbers — doing so hides broken-list errors from the linter.
     {
         let digits: String = line.chars().take_while(|c| c.is_ascii_digit()).collect();
         if !digits.is_empty() {
@@ -581,7 +589,9 @@ fn needs_line_escape(line: &str) -> bool {
             if let Some(after_marker) = rest.strip_prefix(['.', ')'])
                 && (after_marker.is_empty() || after_marker.starts_with([' ', '\t']))
             {
-                return true;
+                if !is_continuation || digits == "1" {
+                    return true;
+                }
             }
         }
     }
