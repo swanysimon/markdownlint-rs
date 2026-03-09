@@ -8,7 +8,7 @@ pub struct Config {
     pub rules: HashMap<String, RuleConfig>,
 
     /// Enable all rules by default
-    #[serde(default)]
+    #[serde(default = "default_default_enabled")]
     pub default_enabled: bool,
 
     /// Custom rule paths (for future extension)
@@ -32,6 +32,10 @@ pub struct Config {
     pub exclude: Vec<String>,
 }
 
+fn default_default_enabled() -> bool {
+    true
+}
+
 fn default_gitignore() -> bool {
     true
 }
@@ -40,7 +44,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             rules: HashMap::new(),
-            default_enabled: false,
+            default_enabled: true,
             custom_rules: Vec::new(),
             gitignore: default_gitignore(),
             front_matter: None,

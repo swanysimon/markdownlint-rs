@@ -86,6 +86,13 @@ text. This is what makes mdlint a formatter rather than a linter with `--fix`.
 - [x] Implement `mdlint format --check`: read each file, format in memory, exit 1 if any file would
   change. No files written. This is the CI-friendly verification mode.
 
+- [ ] Implement ordered list renumbering in the formatter: when a list uses sequential numbering
+  (1. 2. 3.), canonicalise it so the numbers are correct and contiguous. Once implemented, mark
+  MD029 as `fixable: true` and change its default style from `"one"` to `"ordered"`. The motivation
+  is AI-agent readability: rendered Markdown renumbers automatically so `"one"` style is fine for
+  human readers, but agents consume raw source where `1. / 1. / 1.` carries no positional information.
+  Sequential numbers are semantically richer in raw form.
+
 ---
 
 ## Priority 3: Linting Rules

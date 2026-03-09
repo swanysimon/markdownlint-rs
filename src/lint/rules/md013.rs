@@ -24,12 +24,13 @@ impl Rule for MD013 {
         let line_length = config
             .and_then(|c| c.get("line_length"))
             .and_then(|v| v.as_u64())
-            .unwrap_or(80) as usize;
+            .unwrap_or(120) as usize;
 
         let heading_line_length = config
             .and_then(|c| c.get("heading_line_length"))
             .and_then(|v| v.as_u64())
-            .map(|v| v as usize);
+            .map(|v| v as usize)
+            .unwrap_or(80);
 
         let check_code_blocks = config
             .and_then(|c| c.get("code_blocks"))
@@ -124,7 +125,7 @@ impl Rule for MD013 {
 
             // Determine the limit for this line
             let limit = if is_heading {
-                heading_line_length.unwrap_or(line_length)
+                heading_line_length
             } else {
                 line_length
             };
@@ -167,7 +168,8 @@ mod tests {
         let content = "This is a very long line that definitely exceeds the default eighty character limit and should be flagged";
         let parser = MarkdownParser::new(content);
         let rule = MD013;
-        let violations = rule.check(&parser, None);
+        let config = serde_json::json!({ "line_length": 80 });
+        let violations = rule.check(&parser, Some(&config));
 
         assert_eq!(violations.len(), 1);
         assert_eq!(violations[0].line, 1);
@@ -201,7 +203,7 @@ mod tests {
         let content = "```\nThis is a very long line in a code block that exceeds the maximum allowed character count\n```";
         let parser = MarkdownParser::new(content);
         let rule = MD013;
-        let config = serde_json::json!({ "code_blocks": true });
+        let config = serde_json::json!({ "line_length": 80, "code_blocks": true });
         let violations = rule.check(&parser, Some(&config));
 
         assert!(!violations.is_empty());

@@ -12,10 +12,7 @@ pub fn merge_configs(mut base: Config, override_cfg: Config) -> Config {
         base.exclude.extend(override_cfg.exclude);
     }
 
-    // Override default_enabled if explicitly set
-    if override_cfg.default_enabled {
-        base.default_enabled = true;
-    }
+    base.default_enabled = override_cfg.default_enabled;
 
     // Override front_matter if set
     if override_cfg.front_matter.is_some() {
@@ -64,14 +61,15 @@ mod tests {
 
     #[test]
     fn test_merge_configs_default_enabled() {
+        // Child config explicitly opting out overrides the default true
         let base = Config::default();
         let override_cfg = Config {
-            default_enabled: true,
+            default_enabled: false,
             ..Default::default()
         };
 
         let merged = merge_configs(base, override_cfg);
-        assert!(merged.default_enabled);
+        assert!(!merged.default_enabled);
     }
 
     #[test]

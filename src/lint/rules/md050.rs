@@ -22,7 +22,7 @@ impl Rule for MD050 {
         let style = config
             .and_then(|c| c.get("style"))
             .and_then(|v| v.as_str())
-            .unwrap_or("consistent");
+            .unwrap_or("asterisk");
 
         let mut violations = Vec::new();
         let mut first_style: Option<&str> = None;
@@ -166,7 +166,8 @@ mod tests {
         let content = "This is __bold__ and __more bold__.";
         let parser = MarkdownParser::new(content);
         let rule = MD050;
-        let violations = rule.check(&parser, None);
+        let config = serde_json::json!({ "style": "consistent" });
+        let violations = rule.check(&parser, Some(&config));
 
         assert_eq!(violations.len(), 0);
     }

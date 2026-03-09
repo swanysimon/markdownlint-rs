@@ -22,7 +22,7 @@ impl Rule for MD055 {
         let style = config
             .and_then(|c| c.get("style"))
             .and_then(|v| v.as_str())
-            .unwrap_or("consistent");
+            .unwrap_or("leading_and_trailing");
 
         let mut violations = Vec::new();
         let mut first_style: Option<&str> = None;
@@ -184,7 +184,8 @@ mod tests {
         let content = "Col1 | Col2\n-----|-----\nA    | B";
         let parser = MarkdownParser::new(content);
         let rule = MD055;
-        let violations = rule.check(&parser, None);
+        let config = serde_json::json!({ "style": "consistent" });
+        let violations = rule.check(&parser, Some(&config));
 
         assert_eq!(violations.len(), 0);
     }

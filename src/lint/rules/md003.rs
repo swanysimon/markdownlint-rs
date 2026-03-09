@@ -26,7 +26,10 @@ impl Rule for MD003 {
     }
 
     fn check(&self, parser: &MarkdownParser, config: Option<&Value>) -> Vec<Violation> {
-        let style_config = config.and_then(|c| c.get("style")).and_then(|v| v.as_str());
+        let style = config
+            .and_then(|c| c.get("style"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("atx");
 
         let mut violations = Vec::new();
         let mut first_style: Option<HeadingStyle> = None;
@@ -69,45 +72,43 @@ impl Rule for MD003 {
                 None
             };
 
-            if let Some(style) = current_style {
-                // If config specifies a style, check against it
-                if let Some(required) = style_config {
-                    let required_style = match required {
-                        "atx" => HeadingStyle::Atx,
-                        "atx_closed" => HeadingStyle::AtxClosed,
-                        "setext" => HeadingStyle::Setext,
-                        _ => continue,
-                    };
-
-                    if style != required_style {
-                        violations.push(Violation {
-                            line: line_number,
-                            column: Some(1),
-                            rule: self.name().to_string(),
-                            message: format!(
-                                "Heading style should be {:?} but found {:?}",
-                                required_style, style
-                            ),
-                            fix: None,
-                        });
-                    }
-                } else {
-                    // No config: ensure consistency
+            if let Some(current) = current_style {
+                if style == "consistent" {
                     if let Some(first) = first_style {
-                        if style != first {
+                        if current != first {
                             violations.push(Violation {
                                 line: line_number,
                                 column: Some(1),
                                 rule: self.name().to_string(),
                                 message: format!(
                                     "Heading style should be consistent (expected {:?}, found {:?})",
-                                    first, style
+                                    first, current
                                 ),
                                 fix: None,
                             });
                         }
                     } else {
-                        first_style = Some(style);
+                        first_style = Some(current);
+                    }
+                } else {
+                    let required_style = match style {
+                        "atx" => HeadingStyle::Atx,
+                        "atx_closed" => HeadingStyle::AtxClosed,
+                        "setext" => HeadingStyle::Setext,
+                        _ => continue,
+                    };
+
+                    if current != required_style {
+                        violations.push(Violation {
+                            line: line_number,
+                            column: Some(1),
+                            rule: self.name().to_string(),
+                            message: format!(
+                                "Heading style should be {:?} but found {:?}",
+                                required_style, current
+                            ),
+                            fix: None,
+                        });
                     }
                 }
             }
@@ -161,7 +162,8 @@ mod tests {
         let content = "Heading 1\n=========\n\nHeading 2\n---------";
         let parser = MarkdownParser::new(content);
         let rule = MD003;
-        let violations = rule.check(&parser, None);
+        let config = serde_json::json!({ "style": "consistent" });
+        let violations = rule.check(&parser, Some(&config));
 
         assert_eq!(violations.len(), 0); // Both setext style
     }

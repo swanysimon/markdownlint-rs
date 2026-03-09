@@ -7,22 +7,5 @@ exclude = [
   "tests/fixtures",
 ]
 
-# Enable all rules by default
-default_enabled = true
-
-# Respect .gitignore files when discovering markdown files
-gitignore = true
-
-# Rule-specific configuration
-[rules.MD013]
-line_length = 120
-heading_line_length = 80
-
-[rules.MD003]
-style = "atx"
-
-[rules.MD004]
-style = "dash"
-
-[rules.MD007]
-indent = 2
+[rules.MD029]
+style = "ordered"

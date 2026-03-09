@@ -22,7 +22,7 @@ impl Rule for MD049 {
         let style = config
             .and_then(|c| c.get("style"))
             .and_then(|v| v.as_str())
-            .unwrap_or("consistent");
+            .unwrap_or("asterisk");
 
         let mut violations = Vec::new();
         let mut first_style: Option<char> = None;
@@ -182,7 +182,8 @@ mod tests {
         let content = "This is _italic_ and _more italic_.";
         let parser = MarkdownParser::new(content);
         let rule = MD049;
-        let violations = rule.check(&parser, None);
+        let config = serde_json::json!({ "style": "consistent" });
+        let violations = rule.check(&parser, Some(&config));
 
         assert_eq!(violations.len(), 0);
     }

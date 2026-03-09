@@ -22,7 +22,7 @@ impl Rule for MD029 {
         let style = config
             .and_then(|c| c.get("style"))
             .and_then(|v| v.as_str())
-            .unwrap_or("one_or_ordered");
+            .unwrap_or("one");
 
         let mut violations = Vec::new();
         let mut expected_num = 1;
@@ -144,7 +144,8 @@ mod tests {
         let content = "1. First\n2. Second\n3. Third";
         let parser = MarkdownParser::new(content);
         let rule = MD029;
-        let violations = rule.check(&parser, None);
+        let config = serde_json::json!({ "style": "ordered" });
+        let violations = rule.check(&parser, Some(&config));
 
         assert_eq!(violations.len(), 0);
     }
@@ -156,7 +157,7 @@ mod tests {
         let rule = MD029;
         let violations = rule.check(&parser, None);
 
-        assert_eq!(violations.len(), 0); // Default allows "one" style
+        assert_eq!(violations.len(), 0); // Default "one" style: all items labeled 1
     }
 
     #[test]
@@ -204,7 +205,8 @@ mod tests {
                        4. Default configuration";
         let parser = MarkdownParser::new(content);
         let rule = MD029;
-        let violations = rule.check(&parser, None);
+        let config = serde_json::json!({ "style": "ordered" });
+        let violations = rule.check(&parser, Some(&config));
 
         assert_eq!(violations.len(), 0, "List with backticks should be valid");
     }

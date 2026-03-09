@@ -239,11 +239,15 @@ enabled = false
 
 ### Configuration Options
 
+See [`mdlint.default.toml`](mdlint.default.toml) for every option with its default value and a
+description of what it does. The global options are summarised below.
+
 #### Global Options
 
 - `default_enabled` (boolean): When `true`, all rules are enabled unless explicitly disabled. Default: `false`
 - `gitignore` (boolean): Respect `.gitignore` files when discovering markdown files. Default: `true`
 - `no_inline_config` (boolean): Disable inline configuration via HTML comments. Default: `false`
+- `exclude` (array): Paths to exclude from file discovery; merged with any `--exclude` CLI flags. Default: `[]`
 - `custom_rules` (array): Paths to custom rule modules (future feature). Default: `[]`
 - `front_matter` (string): Pattern for front matter detection. Default: auto-detects YAML (`---`) and TOML (`+++`)
 

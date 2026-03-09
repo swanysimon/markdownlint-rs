@@ -26,7 +26,10 @@ impl Rule for MD004 {
     }
 
     fn check(&self, parser: &MarkdownParser, config: Option<&Value>) -> Vec<Violation> {
-        let style_config = config.and_then(|c| c.get("style")).and_then(|v| v.as_str());
+        let style = config
+            .and_then(|c| c.get("style"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("dash");
 
         let mut violations = Vec::new();
         let mut first_marker: Option<ListMarker> = None;
@@ -54,35 +57,7 @@ impl Rule for MD004 {
             };
 
             if let Some(current_marker) = marker {
-                // If config specifies a style, check against it
-                if let Some(required) = style_config {
-                    let required_marker = match required {
-                        "asterisk" => ListMarker::Asterisk,
-                        "plus" => ListMarker::Plus,
-                        "dash" => ListMarker::Dash,
-                        _ => continue,
-                    };
-
-                    if current_marker != required_marker {
-                        let indent_len = line.len() - trimmed.len();
-                        let replacement = format!("{}- {}", &line[..indent_len], &trimmed[2..]);
-                        violations.push(Violation {
-                            line: line_number,
-                            column: Some(indent_len + 1),
-                            rule: self.name().to_string(),
-                            message: format!("List marker style should be {:?}", required_marker),
-                            fix: Some(Fix {
-                                line_start: line_number,
-                                line_end: line_number,
-                                column_start: None,
-                                column_end: None,
-                                replacement,
-                                description: "Replace list marker with dash".to_string(),
-                            }),
-                        });
-                    }
-                } else {
-                    // No config: ensure consistency
+                if style == "consistent" {
                     if let Some(first) = first_marker {
                         if current_marker != first {
                             let indent_len = line.len() - trimmed.len();
@@ -108,6 +83,41 @@ impl Rule for MD004 {
                     } else {
                         first_marker = Some(current_marker);
                     }
+                } else {
+                    let required_marker = match style {
+                        "asterisk" => ListMarker::Asterisk,
+                        "plus" => ListMarker::Plus,
+                        "dash" => ListMarker::Dash,
+                        _ => continue,
+                    };
+
+                    if current_marker != required_marker {
+                        let indent_len = line.len() - trimmed.len();
+                        let replacement = format!(
+                            "{}{} {}",
+                            &line[..indent_len],
+                            match required_marker {
+                                ListMarker::Asterisk => "*",
+                                ListMarker::Plus => "+",
+                                ListMarker::Dash => "-",
+                            },
+                            &trimmed[2..]
+                        );
+                        violations.push(Violation {
+                            line: line_number,
+                            column: Some(indent_len + 1),
+                            rule: self.name().to_string(),
+                            message: format!("List marker style should be {:?}", required_marker),
+                            fix: Some(Fix {
+                                line_start: line_number,
+                                line_end: line_number,
+                                column_start: None,
+                                column_end: None,
+                                replacement,
+                                description: "Replace list marker with required style".to_string(),
+                            }),
+                        });
+                    }
                 }
             }
         }
@@ -129,7 +139,8 @@ mod tests {
         let content = "* Item 1\n* Item 2\n* Item 3";
         let parser = MarkdownParser::new(content);
         let rule = MD004;
-        let violations = rule.check(&parser, None);
+        let config = serde_json::json!({ "style": "consistent" });
+        let violations = rule.check(&parser, Some(&config));
 
         assert_eq!(violations.len(), 0);
     }
@@ -160,7 +171,8 @@ mod tests {
         let content = "* Item 1\n  * Nested 1\n  * Nested 2\n* Item 2";
         let parser = MarkdownParser::new(content);
         let rule = MD004;
-        let violations = rule.check(&parser, None);
+        let config = serde_json::json!({ "style": "consistent" });
+        let violations = rule.check(&parser, Some(&config));
 
         assert_eq!(violations.len(), 0); // All use asterisk
     }
@@ -190,7 +202,7 @@ Here's a code block with markdown syntax:
 + And this one too
 ```
 
-* Real list item
+- Real list item
 "#;
         let parser = MarkdownParser::new(content);
         let rule = MD004;
@@ -208,7 +220,7 @@ Here's a code block with markdown syntax:
     * Not a real list
     + Just code
 
-* Real list item
+- Real list item
 "#;
         let parser = MarkdownParser::new(content);
         let rule = MD004;
@@ -233,8 +245,9 @@ value = 10 - 5  # subtraction
         let rule = MD004;
         let violations = rule.check(&parser, None);
 
-        // Should only flag the inconsistent list marker, not code content
-        assert_eq!(violations.len(), 1);
-        assert_eq!(violations[0].line, 8); // Line with "+ List item 2"
+        // Both non-dash markers violate the default "dash" style
+        assert_eq!(violations.len(), 2);
+        assert_eq!(violations[0].line, 1); // Line with "* List item 1"
+        assert_eq!(violations[1].line, 8); // Line with "+ List item 2"
     }
 }

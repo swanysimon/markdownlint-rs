@@ -22,7 +22,7 @@ impl Rule for MD048 {
         let style = config
             .and_then(|c| c.get("style"))
             .and_then(|v| v.as_str())
-            .unwrap_or("consistent");
+            .unwrap_or("backtick");
 
         let mut violations = Vec::new();
         let mut first_style: Option<char> = None;
@@ -129,7 +129,8 @@ mod tests {
         let content = "~~~\ncode1\n~~~\n\n~~~\ncode2\n~~~";
         let parser = MarkdownParser::new(content);
         let rule = MD048;
-        let violations = rule.check(&parser, None);
+        let config = serde_json::json!({ "style": "consistent" });
+        let violations = rule.check(&parser, Some(&config));
 
         assert_eq!(violations.len(), 0);
     }

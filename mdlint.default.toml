@@ -1,4 +1,4 @@
-# mdlint.toml.example — all options with their default values
+# mdlint.default.toml — all options with their default values
 #
 # Copy to mdlint.toml (or .mdlint.toml) in your project root.
 # mdlint searches upward from the working directory; configs closer to the
@@ -8,9 +8,9 @@
 # requires no configuration. This file is for teams that want to disable
 # specific check rules or adjust a few rule parameters.
 
-# When true, every rule is enabled unless explicitly disabled below.
-# When false (default), only rules that have an [rules.MDxxx] section are active.
-default_enabled = false
+# When true (default), every rule is enabled unless explicitly disabled below.
+# When false, only rules that have an [rules.MDxxx] section are active.
+default_enabled = true
 
 # Respect .gitignore files when discovering Markdown files. Disable only if
 # you are running mdlint outside a git repository or want to lint ignored files.
@@ -50,7 +50,7 @@ no_inline_config = false
 #   "atx_closed" — # Heading #
 #   "consistent" — whatever style appears first in the file
 [rules.MD003]
-style = "consistent"
+style = "atx"
 
 # MD004 — Unordered list marker style
 # style: the required bullet character.
@@ -59,7 +59,7 @@ style = "consistent"
 #   "plus"       — + item
 #   "consistent" — whatever marker appears first in the file
 [rules.MD004]
-style = "consistent"
+style = "dash"
 
 # MD007 — Unordered list indentation
 # indent: number of spaces each nested list level is indented.
@@ -89,12 +89,14 @@ maximum = 1
 
 # MD013 — Line length
 # line_length:         maximum line length (characters).
-# heading_line_length: maximum length for heading lines; defaults to line_length.
+# heading_line_length: maximum length for heading lines; kept shorter than prose
+#                      so headings scan well in raw files. Defaults to line_length.
 # code_blocks:         when true, lines inside code blocks are also checked.
 # tables:              when true, table rows are also checked.
 # headings:            when true, heading lines are also checked.
 [rules.MD013]
-line_length = 80
+line_length = 120
+heading_line_length = 80
 code_blocks = true
 tables = true
 headings = true
@@ -118,7 +120,7 @@ punctuation = ".,;:!"
 #   "ordered"        — items numbered sequentially (1. 2. 3.)
 #   "one_or_ordered" — either style is accepted, but must be consistent
 [rules.MD029]
-style = "one_or_ordered"
+style = "one"
 
 # MD030 — Spaces after list markers
 # ul_single: spaces after a bullet marker when the list item is a single line.
@@ -144,7 +146,7 @@ allowed_elements = []
 #   "___"        — three underscores
 #   "consistent" — whatever style appears first in the file
 [rules.MD035]
-style = "consistent"
+style = "---"
 
 # MD036 — Emphasis used instead of a heading
 # punctuation: if an emphasis-only line ends with one of these characters it is
@@ -170,7 +172,7 @@ code_blocks = true
 #   "indented"   — four-space indentation
 #   "consistent" — whatever style appears first in the file
 [rules.MD046]
-style = "consistent"
+style = "fenced"
 
 # MD048 — Code fence style
 # style: the required fence character.
@@ -178,7 +180,7 @@ style = "consistent"
 #   "tilde"      — ~~~ fences
 #   "consistent" — whatever character appears first in the file
 [rules.MD048]
-style = "consistent"
+style = "backtick"
 
 # MD049 — Emphasis style (italic)
 # style: the required delimiter for italic text.
@@ -186,7 +188,7 @@ style = "consistent"
 #   "underscore" — _text_
 #   "consistent" — whatever delimiter appears first in the file
 [rules.MD049]
-style = "consistent"
+style = "asterisk"
 
 # MD050 — Strong style (bold)
 # style: the required delimiter for bold text.
@@ -194,7 +196,7 @@ style = "consistent"
 #   "underscore" — __text__
 #   "consistent" — whatever delimiter appears first in the file
 [rules.MD050]
-style = "consistent"
+style = "asterisk"
 
 # MD055 — Table pipe style
 # style: where pipe characters are required on table rows.
@@ -204,7 +206,7 @@ style = "consistent"
 #   "no_leading_or_trailing" — col | col
 #   "consistent"           — whatever style appears first in the file
 [rules.MD055]
-style = "consistent"
+style = "leading_and_trailing"
 
 # MD060 — Table column alignment
 # style: required alignment for all table columns.

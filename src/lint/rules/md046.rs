@@ -23,7 +23,7 @@ impl Rule for MD046 {
         let style = config
             .and_then(|c| c.get("style"))
             .and_then(|v| v.as_str())
-            .unwrap_or("consistent");
+            .unwrap_or("fenced");
 
         let mut violations = Vec::new();
         let mut first_style: Option<&str> = None;
@@ -125,7 +125,8 @@ mod tests {
         let content = "    code1\n\n    code2";
         let parser = MarkdownParser::new(content);
         let rule = MD046;
-        let violations = rule.check(&parser, None);
+        let config = serde_json::json!({ "style": "consistent" });
+        let violations = rule.check(&parser, Some(&config));
 
         assert_eq!(violations.len(), 0);
     }
