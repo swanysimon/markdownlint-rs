@@ -1,4 +1,11 @@
-# mdlint configuration file
+# mdlint configuration for the mdlint repository itself.
+
+# Files containing intentionally non-canonical Markdown (test inputs, syntax
+# documentation) are excluded from both check and format.
+exclude = [
+  "FORMAT_SPEC.md",
+  "tests/fixtures",
+]
 
 # Enable all rules by default
 default_enabled = true

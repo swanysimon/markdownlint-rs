@@ -1,0 +1,217 @@
+# mdlint.toml.example — all options with their default values
+#
+# Copy to mdlint.toml (or .mdlint.toml) in your project root.
+# mdlint searches upward from the working directory; configs closer to the
+# root override those further away (scalar values) or extend them (arrays).
+#
+# Most projects need no config at all. `mdlint format` is opinionated and
+# requires no configuration. This file is for teams that want to disable
+# specific check rules or adjust a few rule parameters.
+
+# When true, every rule is enabled unless explicitly disabled below.
+# When false (default), only rules that have an [rules.MDxxx] section are active.
+default_enabled = false
+
+# Respect .gitignore files when discovering Markdown files. Disable only if
+# you are running mdlint outside a git repository or want to lint ignored files.
+gitignore = true
+
+# Paths and glob patterns to exclude from file discovery. These are merged with
+# any --exclude flags passed on the command line. Useful for excluding generated
+# files, test fixtures, or files that intentionally use non-canonical syntax.
+# exclude = ["docs/generated", "tests/fixtures"]
+
+# When true, ignore all <!-- mdlint-disable --> comments inside files.
+# Useful for enforcing rules with no per-file escape hatches.
+no_inline_config = false
+
+# front_matter = "---"   # Uncomment to fix the front-matter delimiter to YAML
+#                        # only. By default mdlint auto-detects both "---"
+#                        # (YAML) and "+++" (TOML).
+
+# custom_rules = []      # Paths to external rule modules (future feature).
+
+# ---------------------------------------------------------------------------
+# Rule configuration
+#
+# Each section enables the rule and, optionally, overrides its parameters.
+# Omitting a section leaves the rule at its default state (disabled unless
+# default_enabled = true).
+#
+# To disable a rule when default_enabled = true:
+#   [rules.MD013]
+#   enabled = false
+# ---------------------------------------------------------------------------
+
+# MD003 — Heading style
+# style: the required style for all headings.
+#   "atx"        — # Heading (enforced by `mdlint format`)
+#   "setext"     — underline style
+#   "atx_closed" — # Heading #
+#   "consistent" — whatever style appears first in the file
+[rules.MD003]
+style = "consistent"
+
+# MD004 — Unordered list marker style
+# style: the required bullet character.
+#   "dash"       — - item (enforced by `mdlint format`)
+#   "asterisk"   — * item
+#   "plus"       — + item
+#   "consistent" — whatever marker appears first in the file
+[rules.MD004]
+style = "consistent"
+
+# MD007 — Unordered list indentation
+# indent: number of spaces each nested list level is indented.
+[rules.MD007]
+indent = 2
+
+# MD009 — Trailing spaces
+# br_spaces: number of trailing spaces that are allowed as a hard line break.
+#            Set to 0 with strict = true to disallow all trailing spaces.
+# strict:    when true, no trailing spaces are allowed even as line breaks.
+#            `mdlint format` replaces trailing-space breaks with backslash breaks.
+[rules.MD009]
+br_spaces = 2
+strict = false
+
+# MD010 — Hard tabs
+# code_blocks: when true, tabs inside fenced and indented code blocks are also
+#              flagged. `mdlint format` preserves tabs inside code blocks, so
+#              set this to false to avoid spurious check violations.
+[rules.MD010]
+code_blocks = true
+
+# MD012 — Multiple consecutive blank lines
+# maximum: the highest number of consecutive blank lines permitted.
+[rules.MD012]
+maximum = 1
+
+# MD013 — Line length
+# line_length:         maximum line length (characters).
+# heading_line_length: maximum length for heading lines; defaults to line_length.
+# code_blocks:         when true, lines inside code blocks are also checked.
+# tables:              when true, table rows are also checked.
+# headings:            when true, heading lines are also checked.
+[rules.MD013]
+line_length = 80
+code_blocks = true
+tables = true
+headings = true
+
+# MD024 — Multiple headings with the same content
+# siblings_only: when true, only flag duplicate headings that share the same
+#                parent heading (i.e. are siblings in the document tree).
+#                When false, all duplicate headings anywhere in the document
+#                are flagged.
+[rules.MD024]
+siblings_only = false
+
+# MD026 — Trailing punctuation in headings
+# punctuation: the set of characters that are not allowed at the end of a heading.
+[rules.MD026]
+punctuation = ".,;:!"
+
+# MD029 — Ordered list item prefix
+# style: the required numbering style.
+#   "one"            — every item labeled 1.
+#   "ordered"        — items numbered sequentially (1. 2. 3.)
+#   "one_or_ordered" — either style is accepted, but must be consistent
+[rules.MD029]
+style = "one_or_ordered"
+
+# MD030 — Spaces after list markers
+# ul_single: spaces after a bullet marker when the list item is a single line.
+# ul_multi:  spaces after a bullet marker when the list item spans multiple lines.
+# ol_single: spaces after an ordered marker when the list item is a single line.
+# ol_multi:  spaces after an ordered marker when the list item spans multiple lines.
+[rules.MD030]
+ul_single = 1
+ul_multi = 1
+ol_single = 1
+ol_multi = 1
+
+# MD033 — Inline HTML
+# allowed_elements: HTML tag names (without angle brackets) that are permitted.
+#                   An empty list (default) disallows all raw HTML elements.
+[rules.MD033]
+allowed_elements = []
+
+# MD035 — Horizontal rule style
+# style: the required thematic break syntax.
+#   "---"        — three dashes (enforced by `mdlint format`)
+#   "***"        — three asterisks
+#   "___"        — three underscores
+#   "consistent" — whatever style appears first in the file
+[rules.MD035]
+style = "consistent"
+
+# MD036 — Emphasis used instead of a heading
+# punctuation: if an emphasis-only line ends with one of these characters it is
+#              treated as punctuation (not a heading substitute) and not flagged.
+[rules.MD036]
+punctuation = ".,;:!?。，；：！？"
+
+# MD041 — First line in a file should be a top-level heading
+# level: the required heading level (1–6) for the first heading in the file.
+[rules.MD041]
+level = 1
+
+# MD044 — Proper names should have correct capitalisation
+# names:       list of proper names that must always appear with this exact casing.
+# code_blocks: when true, occurrences inside code blocks are also checked.
+[rules.MD044]
+names = []
+code_blocks = true
+
+# MD046 — Code block style
+# style: the required style for code blocks.
+#   "fenced"     — backtick or tilde fences (enforced by `mdlint format`)
+#   "indented"   — four-space indentation
+#   "consistent" — whatever style appears first in the file
+[rules.MD046]
+style = "consistent"
+
+# MD048 — Code fence style
+# style: the required fence character.
+#   "backtick"   — ``` fences (enforced by `mdlint format`)
+#   "tilde"      — ~~~ fences
+#   "consistent" — whatever character appears first in the file
+[rules.MD048]
+style = "consistent"
+
+# MD049 — Emphasis style (italic)
+# style: the required delimiter for italic text.
+#   "asterisk"   — *text* (enforced by `mdlint format`)
+#   "underscore" — _text_
+#   "consistent" — whatever delimiter appears first in the file
+[rules.MD049]
+style = "consistent"
+
+# MD050 — Strong style (bold)
+# style: the required delimiter for bold text.
+#   "asterisk"   — **text** (enforced by `mdlint format`)
+#   "underscore" — __text__
+#   "consistent" — whatever delimiter appears first in the file
+[rules.MD050]
+style = "consistent"
+
+# MD055 — Table pipe style
+# style: where pipe characters are required on table rows.
+#   "leading_and_trailing" — | col | col |
+#   "leading_only"         — | col | col
+#   "trailing_only"        —   col | col |
+#   "no_leading_or_trailing" — col | col
+#   "consistent"           — whatever style appears first in the file
+[rules.MD055]
+style = "consistent"
+
+# MD060 — Table column alignment
+# style: required alignment for all table columns.
+#   "default"    — no alignment marker (---)
+#   "left"       — :---
+#   "right"      — ---:
+#   "center"     — :---:
+#   "consistent" — whatever alignment appears first in the file
+[rules.MD060]
+style = "consistent"

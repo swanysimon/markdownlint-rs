@@ -7,6 +7,11 @@ pub fn merge_configs(mut base: Config, override_cfg: Config) -> Config {
         base.custom_rules.extend(override_cfg.custom_rules);
     }
 
+    // Extend excludes
+    if !override_cfg.exclude.is_empty() {
+        base.exclude.extend(override_cfg.exclude);
+    }
+
     // Override default_enabled if explicitly set
     if override_cfg.default_enabled {
         base.default_enabled = true;

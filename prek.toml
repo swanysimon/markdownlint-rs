@@ -19,7 +19,6 @@ entry = "tombi check"
 language = "system"
 pass_filenames = false
 types = ["toml"]
-priority = 1
 
 [[repos.hooks]]
 id = "tombi-fmt"
@@ -28,7 +27,6 @@ entry = "tombi format"
 language = "system"
 pass_filenames = false
 types = ["toml"]
-priority = 2
 
 [[repos.hooks]]
 id = "clippy"
@@ -37,7 +35,6 @@ entry = "cargo clippy --fix --allow-dirty --all-targets --all-features -- -D war
 language = "system"
 pass_filenames = false
 types = ["rust"]
-priority = 2
 
 [[repos.hooks]]
 id = "rustfmt"
@@ -46,7 +43,6 @@ entry = "cargo fmt -- --files-with-diff"
 language = "system"
 pass_filenames = false
 types = ["rust"]
-priority = 3
 
 [[repos.hooks]]
 id = "test"
@@ -55,25 +51,22 @@ entry = "cargo test"
 language = "system"
 pass_filenames = false
 types = ["rust"]
-priority = 4
 
 [[repos.hooks]]
 id = "mdlint-check"
 name = "check markdown rules (dogfood)"
-entry = "cargo run -- check --exclude FORMAT_SPEC.md --exclude tests/fixtures"
+entry = "cargo run -- check"
 language = "system"
 pass_filenames = false
 types = ["rust"]
-priority = 4
 
 [[repos.hooks]]
 id = "mdlint-format"
 name = "check markdown formatting (dogfood)"
-entry = "cargo run -- format --check --exclude FORMAT_SPEC.md --exclude tests/fixtures"
+entry = "cargo run -- format"
 language = "system"
 pass_filenames = false
 types = ["rust"]
-priority = 4
 
 [[repos.hooks]]
 id = "hadolint"
@@ -81,7 +74,6 @@ name = "check dockerfile"
 entry = "hadolint"
 language = "system"
 files = "^Dockerfile$"
-priority = 1
 
 [[repos.hooks]]
 id = "actionlint"
@@ -90,4 +82,3 @@ entry = "actionlint"
 language = "system"
 pass_filenames = false
 files = "^.github/"
-priority = 2

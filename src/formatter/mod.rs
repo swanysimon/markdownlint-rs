@@ -292,7 +292,10 @@ impl FormatterState {
                 let text = std::mem::take(&mut self.inline);
                 let hashes = "#".repeat(heading_to_u8(level) as usize);
                 self.write_bq_prefix();
-                self.out.push_str(&format!("{} {}\n", hashes, text));
+                // Trim whitespace: pulldown-cmark strips leading/trailing ASCII
+                // whitespace (including VT U+000B) from ATX heading content on
+                // re-parse, so emitting it would break idempotency.
+                self.out.push_str(&format!("{} {}\n", hashes, text.trim()));
                 self.needs_blank = true;
             }
             TagEnd::CodeBlock => {
@@ -807,6 +810,15 @@ mod tests {
         let once = format("\\-");
         let twice = format(&once);
         assert_eq!(once, twice, "idempotency: escaped dash");
+    }
+
+    #[test]
+    fn test_setext_heading_with_leading_vt() {
+        // VT (U+000B) in setext heading body is preserved by pulldown-cmark, but
+        // stripped from ATX heading content on re-parse — trim before emitting.
+        let once = format("\u{b}¡\r=");
+        let twice = format(&once);
+        assert_eq!(once, twice, "idempotency: setext heading with leading VT");
     }
 
     #[test]

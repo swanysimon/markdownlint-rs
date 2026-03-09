@@ -34,7 +34,8 @@ fn run() -> Result<bool> {
 }
 
 fn run_check(args: &CheckArgs, config: Config, use_color: bool, verbose: bool) -> Result<bool> {
-    let files = find_files(&args.files(), &args.exclude, args.should_respect_ignore())?;
+    let excludes = merge_excludes(&args.exclude, &config.exclude);
+    let files = find_files(&args.files(), &excludes, args.should_respect_ignore())?;
 
     if files.is_empty() {
         eprintln!("No markdown files found");
@@ -56,8 +57,9 @@ fn run_check(args: &CheckArgs, config: Config, use_color: bool, verbose: bool) -
     Ok(lint_result.has_errors())
 }
 
-fn run_format(args: &FormatArgs, _config: Config) -> Result<bool> {
-    let files = find_files(&args.files(), &args.exclude, args.should_respect_ignore())?;
+fn run_format(args: &FormatArgs, config: Config) -> Result<bool> {
+    let excludes = merge_excludes(&args.exclude, &config.exclude);
+    let files = find_files(&args.files(), &excludes, args.should_respect_ignore())?;
 
     if files.is_empty() {
         eprintln!("No markdown files found");
@@ -99,6 +101,12 @@ fn load_config(cli: &Cli) -> Result<Config> {
         }
         loader => loader.load(),
     }
+}
+
+fn merge_excludes(cli_excludes: &[PathBuf], config_excludes: &[String]) -> Vec<PathBuf> {
+    let mut excludes: Vec<PathBuf> = cli_excludes.to_vec();
+    excludes.extend(config_excludes.iter().map(PathBuf::from));
+    excludes
 }
 
 fn find_files(

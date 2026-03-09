@@ -26,6 +26,10 @@ pub struct Config {
     /// Disable inline configuration comments
     #[serde(default)]
     pub no_inline_config: bool,
+
+    /// Paths and glob patterns to exclude from file discovery
+    #[serde(default)]
+    pub exclude: Vec<String>,
 }
 
 fn default_gitignore() -> bool {
@@ -41,6 +45,7 @@ impl Default for Config {
             gitignore: default_gitignore(),
             front_matter: None,
             no_inline_config: false,
+            exclude: Vec::new(),
         }
     }
 }
