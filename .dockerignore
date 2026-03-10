@@ -27,3 +27,7 @@ docs/
 # Misc
 .DS_Store
 Thumbs.db
+
+# Other languages
+npm/
+python/

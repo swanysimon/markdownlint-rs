@@ -4,7 +4,7 @@ version = "0.3.3"
 edition = "2024"
 description = "A fast, flexible, configuration-based command-line interface for linting Markdown/CommonMark files"
 repository = "https://github.com/swanysimon/mdlint"
-license = "MIT"
+license = "Unlicense"
 keywords = ["cli", "formatter", "lint", "markdown"]
 categories = ["command-line-utilities", "development-tools"]
 

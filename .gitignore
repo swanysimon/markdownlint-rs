@@ -23,3 +23,14 @@ target
 
 # Added by cargo
 /target
+
+# npm wrapper: downloaded binaries (fetched at install time, not committed)
+/npm/bin/mdlint
+/npm/bin/mdlint.exe
+
+# Python wrapper: downloaded binaries and build artifacts
+/python/mdlint/mdlint
+/python/mdlint/mdlint.exe
+/python/dist/
+/python/mdlint/__pycache__/
+/python/*.egg-info/

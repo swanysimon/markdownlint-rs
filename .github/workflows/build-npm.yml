@@ -1,0 +1,152 @@
+name: npm
+
+on:
+  workflow_call:
+    inputs:
+      release:
+        description: GitHub release tag to download binaries from and publish to npm
+        default: ""
+        type: string
+    secrets:
+      NPM_TOKEN:
+        required: false
+
+jobs:
+  publish-platform:
+    name: Publish npm platform package (${{ matrix.package_name }})
+    if: ${{ inputs.release != '' }}
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux x64
+          - asset: mdlint-linux-x86_64
+            binary: mdlint
+            package_name: markdownlint-rs-linux-x64
+            os: linux
+            cpu: x64
+
+          # Linux arm64
+          - asset: mdlint-linux-aarch64
+            binary: mdlint
+            package_name: markdownlint-rs-linux-arm64
+            os: linux
+            cpu: arm64
+
+          # macOS x64
+          - asset: mdlint-macos-x86_64
+            binary: mdlint
+            package_name: markdownlint-rs-darwin-x64
+            os: darwin
+            cpu: x64
+
+          # macOS arm64 (Apple Silicon)
+          - asset: mdlint-macos-aarch64
+            binary: mdlint
+            package_name: markdownlint-rs-darwin-arm64
+            os: darwin
+            cpu: arm64
+
+          # Windows x64
+          - asset: mdlint-windows-x86_64.exe
+            binary: mdlint.exe
+            package_name: markdownlint-rs-win32-x64
+            os: win32
+            cpu: x64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: npm
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Download binary from release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download '${{ inputs.release }}' \
+            --pattern '${{ matrix.asset }}' \
+            --output '${{ matrix.binary }}' \
+            --repo '${{ github.repository }}'
+          chmod +x '${{ matrix.binary }}'
+
+      - name: Create platform package
+        env:
+          RELEASE: ${{ inputs.release }}
+          PACKAGE_NAME: ${{ matrix.package_name }}
+          OS: ${{ matrix.os }}
+          CPU: ${{ matrix.cpu }}
+        run: |
+          VERSION="${RELEASE#v}"
+          mkdir pkg
+          mv '${{ matrix.binary }}' pkg/
+          cat > pkg/package.json << EOF
+          {
+            "name": "${PACKAGE_NAME}",
+            "version": "${VERSION}",
+            "description": "markdownlint-rs binary for ${OS}/${CPU}",
+            "license": "Unlicense",
+            "os": ["${OS}"],
+            "cpu": ["${CPU}"],
+            "repository": {
+              "type": "git",
+              "url": "https://github.com/swanysimon/mdlint.git"
+            }
+          }
+          EOF
+
+      - name: Publish platform package
+        working-directory: pkg
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --provenance
+
+  publish-main:
+    name: Publish main npm package
+    if: ${{ inputs.release != '' }}
+    needs: publish-platform
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      id-token: write
+    defaults:
+      run:
+        working-directory: npm
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: npm
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Set package version
+        env:
+          RELEASE: ${{ inputs.release }}
+        run: |
+          VERSION="${RELEASE#v}"
+          npm version "$VERSION" --no-git-tag-version
+          npm pkg set optionalDependencies.markdownlint-rs-linux-x64="$VERSION"
+          npm pkg set optionalDependencies.markdownlint-rs-linux-arm64="$VERSION"
+          npm pkg set optionalDependencies.markdownlint-rs-darwin-x64="$VERSION"
+          npm pkg set optionalDependencies.markdownlint-rs-darwin-arm64="$VERSION"
+          npm pkg set optionalDependencies.markdownlint-rs-win32-x64="$VERSION"
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --provenance

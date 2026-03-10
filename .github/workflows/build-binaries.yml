@@ -43,6 +43,13 @@ jobs:
             asset_name: mdlint-linux-aarch64
             archive_format: tar.gz
 
+          # Linux aarch64 (musl - static binary)
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+            artifact_name: mdlint
+            asset_name: mdlint-linux-aarch64-musl
+            archive_format: tar.gz
+
           # macOS x86_64
           - os: macos-latest
             target: x86_64-apple-darwin
@@ -76,7 +83,7 @@ jobs:
           cache-shared-key: ${{ matrix.target }}
 
       - name: Install musl tools (Linux musl only)
-        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
+        if: ${{ contains(matrix.target, 'musl') }}
         run: sudo apt-get update && sudo apt-get install -y musl-tools
 
       - name: Build release binary

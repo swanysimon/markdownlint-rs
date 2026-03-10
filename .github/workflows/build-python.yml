@@ -1,0 +1,95 @@
+name: Python
+
+on:
+  workflow_call:
+    inputs:
+      release:
+        description: GitHub release tag to download binaries from and publish to PyPI
+        default: ""
+        type: string
+
+jobs:
+  publish:
+    name: Publish Python wheel (${{ matrix.platform_tag }})
+    if: ${{ inputs.release != '' }}
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: write
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux x86_64
+          - asset: mdlint-linux-x86_64
+            binary: mdlint
+            platform_tag: manylinux_2_17_x86_64.manylinux2014_x86_64
+
+          # Linux x86_64 (musl - static binary)
+          - asset: mdlint-linux-x86_64-musl
+            binary: mdlint
+            platform_tag: musllinux_1_2_x86_64
+
+          # Linux aarch64
+          - asset: mdlint-linux-aarch64
+            binary: mdlint
+            platform_tag: manylinux_2_17_aarch64.manylinux2014_aarch64
+
+          # Linux aarch64 (musl - static binary)
+          - asset: mdlint-linux-aarch64-musl
+            binary: mdlint
+            platform_tag: musllinux_1_2_aarch64
+
+          # macOS x86_64
+          - asset: mdlint-macos-x86_64
+            binary: mdlint
+            platform_tag: macosx_10_12_x86_64
+
+          # macOS aarch64 (Apple Silicon)
+          - asset: mdlint-macos-aarch64
+            binary: mdlint
+            platform_tag: macosx_11_0_arm64
+
+          # Windows x86_64
+          - asset: mdlint-windows-x86_64.exe
+            binary: mdlint.exe
+            platform_tag: win_amd64
+
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: python
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Download binary from release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download ${{ inputs.release }} \
+            --pattern '${{ matrix.asset }}' \
+            --output "mdlint/${{ matrix.binary }}" \
+            --repo "${{ github.repository }}"
+          chmod +x "mdlint/${{ matrix.binary }}"
+
+      - name: Set package version
+        run: uv version "${{ inputs.release }}"
+
+      - name: Build wheel
+        env:
+          MDLINT_PLATFORM_TAG: ${{ matrix.platform_tag }}
+        run: uv build --wheel
+
+      - name: Upload wheel to GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ inputs.release }}" dist/*.whl --repo "${{ github.repository }}"
+
+      - name: Publish to PyPI
+        run: uv publish dist/*.whl

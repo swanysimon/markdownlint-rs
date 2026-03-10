@@ -1,12 +1,15 @@
 name: Tag and Release
+
 on:
   push:
     tags:
       - 'v*.*.*'
+
 # Prevent concurrent builds: only one at a time (main pushes + releases)
 concurrency:
   group: main-build
   cancel-in-progress: false
+
 jobs:
   lint:
     name: Lint and test
@@ -34,7 +37,7 @@ jobs:
         run: |
           CARGO_VERSION="$(yq -roy '.package.version' Cargo.toml)"
           if [[ "$TAG_VERSION" != "$CARGO_VERSION" ]]; then
-            echo "❌ Error: Tag version ${TAG_VERSION} does not match Cargo.toml version ${CARGO_VERSION}" >&2
+            echo "Tag version ${TAG_VERSION} does not match Cargo.toml version ${CARGO_VERSION}" >&2
             exit 1
           fi
 
@@ -43,7 +46,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if gh release view ${{ github.ref_name }} --repo ${{ github.repository }} >/dev/null 2>&1; then
-            echo "❌ Error: Release ${{ github.ref_name }} already exists" >&2
+            echo "Release ${{ github.ref_name }} already exists" >&2
             exit 1
           fi
 
@@ -65,7 +68,7 @@ jobs:
     needs: draft-release
     permissions:
       contents: write
-    uses: ./.github/workflows/build.yml
+    uses: ./.github/workflows/build-binaries.yml
     with:
       release: ${{ github.ref_name }}
 
@@ -188,11 +191,33 @@ jobs:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: cargo publish --token "${CARGO_REGISTRY_TOKEN}"
 
+  publish-python:
+    needs: build
+    permissions:
+      contents: write
+      id-token: write
+    uses: ./.github/workflows/build-python.yml
+    with:
+      release: ${{ github.ref_name }}
+
+  publish-npm:
+    needs: build
+    permissions:
+      contents: write
+      id-token: write
+    uses: ./.github/workflows/build-npm.yml
+    with:
+      release: ${{ github.ref_name }}
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
   publish-release:
     name: Publish Release
     needs:
       - publish-crates-io
       - publish-docker
+      - publish-npm
+      - publish-python
     runs-on: ubuntu-latest
     permissions:
       contents: write

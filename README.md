@@ -65,20 +65,20 @@ The Docker image supports both `linux/amd64` and `linux/arm64` platforms.
 ### From pip
 
 ```shell
-pip install mdlint
+pip install markdownlint-rs
 ```
 
 ### From npm
 
 ```shell
-npm install --save-dev mdlint
+npm install --save-dev markdownlint-rs
 npx mdlint check
 ```
 
 Or globally:
 
 ```shell
-npm install -g mdlint
+npm install -g markdownlint-rs
 mdlint check
 ```
 
@@ -443,7 +443,7 @@ The full development task list is in [AIDEV.md](AIDEV.md).
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+The Unlicense - see [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 

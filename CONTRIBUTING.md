@@ -7,6 +7,9 @@ Thank you for your interest in contributing to mdlint!
 The only prerequisites are [mise](https://mise.jdx.dev/) and [Rust](https://rustup.rs/). Optionally,
 Docker is needed for Dockerfile linting. mise manages every other tool automatically.
 
+To work with the Python package in `python/`, [uv](https://docs.astral.sh/uv/) is also required.
+It is not needed for Rust development or running the general quality checks.
+
 1. **Install mise**: Follow the [mise installation guide](https://mise.jdx.dev/getting-started.html)
 
 2. **Install Rust**: Use [rustup](https://rustup.rs/)
