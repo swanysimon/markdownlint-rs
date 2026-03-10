@@ -2,4 +2,5 @@
 actionlint = "latest"
 hadolint = "latest"
 prek = "latest"
+shellcheck = "latest"
 tombi = "latest"
