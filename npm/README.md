@@ -69,4 +69,4 @@ Releases are automated via `.github/workflows/build-npm.yml`. On a version tag p
 workflow downloads each pre-built binary from the GitHub release, creates a platform-specific
 npm package, and publishes it alongside the main package to npm.
 
-An `NPM_TOKEN` secret must be configured in the repository settings.
+The npm package uses trusted publishing via GitHub Actions OIDC — no token is required.

@@ -209,8 +209,6 @@ jobs:
     uses: ./.github/workflows/build-npm.yml
     with:
       release: ${{ github.ref_name }}
-    secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   publish-release:
     name: Publish Release

@@ -7,9 +7,6 @@ on:
         description: GitHub release tag to download binaries from and publish to npm
         default: ""
         type: string
-    secrets:
-      NPM_TOKEN:
-        required: false
 
 jobs:
   publish-platform:
@@ -68,7 +65,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Download binary from release
@@ -108,8 +105,6 @@ jobs:
 
       - name: Publish platform package
         working-directory: pkg
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public --provenance
 
   publish-main:
@@ -132,7 +127,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Set package version
@@ -148,6 +143,4 @@ jobs:
           npm pkg set optionalDependencies.markdownlint-rs-win32-x64="$VERSION"
 
       - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public --provenance
