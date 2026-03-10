@@ -588,10 +588,9 @@ fn needs_line_escape(line: &str, is_continuation: bool) -> bool {
             let rest = &line[digits.len()..];
             if let Some(after_marker) = rest.strip_prefix(['.', ')'])
                 && (after_marker.is_empty() || after_marker.starts_with([' ', '\t']))
+                && (!is_continuation || digits == "1")
             {
-                if !is_continuation || digits == "1" {
-                    return true;
-                }
+                return true;
             }
         }
     }

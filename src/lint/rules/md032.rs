@@ -64,10 +64,9 @@ impl Rule for MD032 {
                                     line: line_num, // previous line (0-indexed → 1-indexed)
                                     column: Some(1),
                                     rule: self.name().to_string(),
-                                    message:
-                                        "Line breaks ordered list continuation; subsequent \
+                                    message: "Line breaks ordered list continuation; subsequent \
                                          numbered items are parsed as text, not list items"
-                                            .to_string(),
+                                        .to_string(),
                                     fix: None,
                                 });
                             } else {
@@ -75,8 +74,7 @@ impl Rule for MD032 {
                                     line: line_num + 1,
                                     column: Some(1),
                                     rule: self.name().to_string(),
-                                    message: "List should be surrounded by blank lines"
-                                        .to_string(),
+                                    message: "List should be surrounded by blank lines".to_string(),
                                     fix: None,
                                 });
                             }

@@ -62,6 +62,26 @@ docker run --rm -v "$PWD:/workspace" ghcr.io/swanysimon/mdlint:latest format
 
 The Docker image supports both `linux/amd64` and `linux/arm64` platforms.
 
+### From pip
+
+```shell
+pip install mdlint
+```
+
+### From npm
+
+```shell
+npm install --save-dev mdlint
+npx mdlint check
+```
+
+Or globally:
+
+```shell
+npm install -g mdlint
+mdlint check
+```
+
 ### From source
 
 ```shell
@@ -250,7 +270,8 @@ description of what it does. The global options are summarised below.
 - `exclude` (array): Paths to exclude from file discovery; merged with any `--exclude` CLI flags. Default: `[]`
 - `custom_rules` (array): Paths to custom rule modules (future feature). Default: `[]`
 - `front_matter` (string): Pattern for front matter detection. Default: auto-detects YAML (`---`) and TOML (`+++`)
-- `fix` (boolean): When `true`, `mdlint check` automatically applies all auto-fixable violations, equivalent to passing `--fix` on the command line. Default: `true`
+- `fix` (boolean): When `true`, `mdlint check` automatically applies all auto-fixable violations,
+  equivalent to passing `--fix` on the command line. Default: `true`
 
 #### Rule Configuration
 
