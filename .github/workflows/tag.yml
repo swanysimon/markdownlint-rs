@@ -91,6 +91,7 @@ jobs:
     uses: ./.github/workflows/publish-container.yml
     with:
       version: ${{ github.ref_name }}
+    secrets: inherit
 
   publish-crates-io:
     needs: draft-release
@@ -111,7 +112,7 @@ jobs:
   publish-npm:
     needs: build
     permissions:
-      contents: read
+      contents: write
       id-token: write
     uses: ./.github/workflows/publish-npm.yml
     with:
