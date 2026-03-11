@@ -45,7 +45,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if gh release view ${{ github.ref_name }} --repo ${{ github.repository }} >/dev/null 2>&1; then
+          if gh release view '${{ github.ref_name }}' --repo '${{ github.repository }}'; then
             echo "Release ${{ github.ref_name }} already exists" >&2
             exit 1
           fi
@@ -73,136 +73,28 @@ jobs:
     with:
       release: ${{ github.ref_name }}
 
-  build-docker:
-    name: Build Docker Image (${{ matrix.platform }})
+  publish-container:
     needs: draft-release
-    runs-on: ${{ matrix.runs-on }}
     permissions:
       contents: read
-      packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: linux/amd64
-            runs-on: ubuntu-latest
-          - platform: linux/arm64
-            runs-on: ubuntu-24.04-arm
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          registry: docker.io
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            ghcr.io/${{ github.repository }}
-            docker.io/${{ vars.DOCKERHUB_USERNAME }}/mdlint
-          tags: type=semver,pattern={{version}}-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          platforms: ${{ matrix.platform }}
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.platform }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
-
-  publish-docker:
-    name: Publish Multi-Platform Docker Manifest
-    needs: build-docker
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          registry: docker.io
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Extract version
-        id: version
-        run: |
-          VERSION="${GITHUB_REF#refs/tags/v}"
-          echo "version=${VERSION}" | tee -a "$GITHUB_OUTPUT"
-          echo "major=$(echo "$VERSION" | cut -d . -f1)" | tee -a "$GITHUB_OUTPUT"
-          echo "minor=$(echo "$VERSION" | cut -d . -f1-2)" | tee -a "$GITHUB_OUTPUT"
-
-      - name: Create and push multi-platform manifest
-        env:
-          DH_REPO: docker.io/${{ vars.DOCKERHUB_USERNAME }}/mdlint
-          GHCR_REPO: ghcr.io/${{ github.repository }}
-        run: |
-          for REPO in "${GHCR_REPO}" "${DH_REPO}"; do
-            docker buildx imagetools create \
-              --tag "${REPO}:${{ steps.version.outputs.version }}" \
-              --tag "${REPO}:${{ steps.version.outputs.minor }}" \
-              --tag "${REPO}:${{ steps.version.outputs.major }}" \
-              --tag "${REPO}:latest" \
-              "${REPO}:${{ steps.version.outputs.version }}-amd64" \
-              "${REPO}:${{ steps.version.outputs.version }}-arm64"
-          done
+      id-token: write
+    uses: ./.github/workflows/publish-container.yml
+    with:
+      version: ${{ github.ref_name }}
 
   publish-crates-io:
-    name: Publish to crates.io
     needs: draft-release
-    runs-on: ubuntu-latest
-    environment: pypi
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Install Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          cache-key: "publish"
-
-      - name: Authenticate with crates.io
-        uses: rust-lang/crates-io-auth-action@v1
-        id: auth
-
-      - name: Publish to crates.io
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
-        run: cargo publish
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/publish-crates-io.yml
 
   publish-python:
     needs: build
     permissions:
       contents: write
       id-token: write
-    uses: ./.github/workflows/build-python.yml
+    uses: ./.github/workflows/publish-python.yml
     with:
       release: ${{ github.ref_name }}
 
@@ -211,17 +103,17 @@ jobs:
     permissions:
       contents: write
       id-token: write
-    uses: ./.github/workflows/build-npm.yml
+    uses: ./.github/workflows/publish-npm.yml
     with:
       release: ${{ github.ref_name }}
 
   publish-release:
     name: Publish Release
     needs:
-      - publish-crates-io
-      - publish-docker
+      - publish-container
       - publish-npm
       - publish-python
+      - publish-crates-io
     runs-on: ubuntu-latest
     permissions:
       contents: write

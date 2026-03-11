@@ -5,15 +5,14 @@ on:
     inputs:
       release:
         description: GitHub release tag to download binaries from and publish to npm
-        default: ""
+        required: true
         type: string
 
 jobs:
   publish-platform:
     name: Publish npm platform package (${{ matrix.package_name }})
-    if: ${{ inputs.release != '' }}
     runs-on: ubuntu-latest
-    environment: pypi
+    environment: npm
     permissions:
       contents: write
       id-token: write
@@ -109,10 +108,9 @@ jobs:
 
   publish-main:
     name: Publish main npm package
-    if: ${{ inputs.release != '' }}
     needs: publish-platform
     runs-on: ubuntu-latest
-    environment: pypi
+    environment: npm
     permissions:
       id-token: write
     defaults:

@@ -1,4 +1,4 @@
-name: Build release
+name: Build and Publish Rust Artifacts
 
 on:
   workflow_call:
@@ -8,13 +8,9 @@ on:
         default: ""
         type: string
 
-env:
-  CARGO_TERM_COLOR: always
-  RUST_BACKTRACE: 1
-
 jobs:
   build:
-    name: Build Release Binaries
+    name: Build Release Binaries (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write

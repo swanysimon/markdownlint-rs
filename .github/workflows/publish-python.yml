@@ -5,13 +5,12 @@ on:
     inputs:
       release:
         description: GitHub release tag to download binaries from and publish to PyPI
-        default: ""
+        required: true
         type: string
 
 jobs:
   publish:
     name: Publish Python wheel (${{ matrix.platform_tag }})
-    if: ${{ inputs.release != '' }}
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -86,10 +85,10 @@ jobs:
           MDLINT_PLATFORM_TAG: ${{ matrix.platform_tag }}
         run: uv build --wheel
 
+      - name: Publish to PyPI
+        run: uv publish dist/*.whl
+
       - name: Upload wheel to GitHub release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload "${{ inputs.release }}" dist/*.whl --repo "${{ github.repository }}"
-
-      - name: Publish to PyPI
-        run: uv publish dist/*.whl
