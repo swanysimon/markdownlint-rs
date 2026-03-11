@@ -1,0 +1,14 @@
+[[pre-release-replacements]]
+file = "npm/package.json"
+search = '"version": "[^"]*"'
+replace = '"version": "{{version}}"'
+
+[[pre-release-replacements]]
+file = "npm/package.json"
+search = '("markdownlint-rs-[^"]+": )"[^"]*"'
+replace = '$1"{{version}}"'
+
+[[pre-release-replacements]]
+file = "python/pyproject.toml"
+search = 'version = "[^"]*"'
+replace = 'version = "{{version}}"'

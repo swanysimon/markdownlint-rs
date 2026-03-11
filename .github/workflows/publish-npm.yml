@@ -10,7 +10,7 @@ on:
 
 jobs:
   publish-platform:
-    name: Publish npm platform package (${{ matrix.package_name }})
+    name: Publish npm platform package (${{ matrix.directory }})
     runs-on: ubuntu-latest
     environment: npm
     permissions:
@@ -23,37 +23,37 @@ jobs:
           # Linux x64
           - asset: mdlint-linux-x86_64
             binary: mdlint
-            package_name: markdownlint-rs-linux-x64
-            os: linux
-            cpu: x64
+            directory: linux-x64
+
+          # Linux x64 (musl - static binary)
+          - asset: mdlint-linux-x86_64-musl
+            binary: mdlint
+            directory: linux-x64-musl
 
           # Linux arm64
           - asset: mdlint-linux-aarch64
             binary: mdlint
-            package_name: markdownlint-rs-linux-arm64
-            os: linux
-            cpu: arm64
+            directory: linux-arm64
+
+          # Linux arm64 (musl - static binary)
+          - asset: mdlint-linux-aarch64-musl
+            binary: mdlint
+            directory: linux-arm64-musl
 
           # macOS x64
           - asset: mdlint-macos-x86_64
             binary: mdlint
-            package_name: markdownlint-rs-darwin-x64
-            os: darwin
-            cpu: x64
+            directory: darwin-x64
 
           # macOS arm64 (Apple Silicon)
           - asset: mdlint-macos-aarch64
             binary: mdlint
-            package_name: markdownlint-rs-darwin-arm64
-            os: darwin
-            cpu: arm64
+            directory: darwin-arm64
 
           # Windows x64
           - asset: mdlint-windows-x86_64.exe
             binary: mdlint.exe
-            package_name: markdownlint-rs-win32-x64
-            os: win32
-            cpu: x64
+            directory: win32-x64
 
     steps:
       - name: Checkout repository
@@ -73,38 +73,17 @@ jobs:
         run: |
           gh release download '${{ inputs.release }}' \
             --pattern '${{ matrix.asset }}' \
-            --output '${{ matrix.binary }}' \
+            --output 'npm/packages/${{ matrix.directory }}/${{ matrix.binary }}' \
             --repo '${{ github.repository }}'
-          chmod +x '${{ matrix.binary }}'
-
-      - name: Create platform package
-        env:
-          RELEASE: ${{ inputs.release }}
-          PACKAGE_NAME: ${{ matrix.package_name }}
-          OS: ${{ matrix.os }}
-          CPU: ${{ matrix.cpu }}
-        run: |
-          VERSION="${RELEASE#v}"
-          mkdir pkg
-          mv '${{ matrix.binary }}' pkg/
-          cat > pkg/package.json << EOF
-          {
-            "name": "${PACKAGE_NAME}",
-            "version": "${VERSION}",
-            "description": "markdownlint-rs binary for ${OS}/${CPU}",
-            "license": "Unlicense",
-            "os": ["${OS}"],
-            "cpu": ["${CPU}"],
-            "repository": {
-              "type": "git",
-              "url": "https://github.com/swanysimon/mdlint.git"
-            }
-          }
-          EOF
+          chmod +x 'npm/packages/${{ matrix.directory }}/${{ matrix.binary }}'
 
       - name: Publish platform package
-        working-directory: pkg
-        run: npm publish --access public --provenance
+        env:
+          RELEASE: ${{ inputs.release }}
+        working-directory: npm/packages/${{ matrix.directory }}
+        run: |
+          npm version "${RELEASE#v}" --no-git-tag-version
+          npm publish --access public --provenance
 
   publish-main:
     name: Publish main npm package

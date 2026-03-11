@@ -31,15 +31,24 @@ jobs:
         id: version
         run: echo "version=${GITHUB_REF#refs/tags/v}" | tee -a "$GITHUB_OUTPUT"
 
-      - name: Compare tag and Cargo versions
+      - name: Verify all package versions match tag
         env:
           TAG_VERSION: ${{ steps.version.outputs.version }}
         run: |
           CARGO_VERSION="$(yq -roy '.package.version' Cargo.toml)"
-          if [[ "$TAG_VERSION" != "$CARGO_VERSION" ]]; then
-            echo "Tag version ${TAG_VERSION} does not match Cargo.toml version ${CARGO_VERSION}" >&2
-            exit 1
-          fi
+          NPM_VERSION="$(jq -r '.version' npm/package.json)"
+          PYTHON_VERSION="$(yq -roy '.project.version' python/pyproject.toml)"
+
+          FAILED=0
+          for PAIR in "Cargo.toml:${CARGO_VERSION}" "npm/package.json:${NPM_VERSION}" "python/pyproject.toml:${PYTHON_VERSION}"; do
+            FILE="${PAIR%%:*}"
+            VERSION="${PAIR##*:}"
+            if [[ "$TAG_VERSION" != "$VERSION" ]]; then
+              echo "Tag version ${TAG_VERSION} does not match ${FILE} version ${VERSION}" >&2
+              FAILED=1
+            fi
+          done
+          exit "$FAILED"
 
       - name: Check if release already exists
         env:
