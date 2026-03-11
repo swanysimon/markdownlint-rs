@@ -89,8 +89,11 @@ jobs:
       - name: Extract version
         id: version
         run: |
-          echo "major=$(echo "${{ inputs.version }}" | cut -d . -f1)" | tee -a "$GITHUB_OUTPUT"
-          echo "minor=$(echo "${{ inputs.version }}" | cut -d . -f1-2)" | tee -a "$GITHUB_OUTPUT"
+          VERSION="${{ inputs.version }}"
+          VERSION="${VERSION#v}"
+          echo "version=${VERSION}" | tee -a "$GITHUB_OUTPUT"
+          echo "major=$(echo "${VERSION}" | cut -d . -f1)" | tee -a "$GITHUB_OUTPUT"
+          echo "minor=$(echo "${VERSION}" | cut -d . -f1-2)" | tee -a "$GITHUB_OUTPUT"
 
       - name: Create and push multi-platform manifest
         env:
@@ -103,6 +106,6 @@ jobs:
               --tag "${REPO}:${{ steps.version.outputs.minor }}" \
               --tag "${REPO}:${{ steps.version.outputs.major }}" \
               --tag "${REPO}:latest" \
-              "${REPO}:${{ inputs.version }}-amd64" \
-              "${REPO}:${{ inputs.version }}-arm64"
+              "${REPO}:${{ steps.version.outputs.version }}-amd64" \
+              "${REPO}:${{ steps.version.outputs.version }}-arm64"
           done

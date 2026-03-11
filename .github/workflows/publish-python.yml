@@ -18,6 +18,7 @@ jobs:
       id-token: write
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         include:
           # Linux x86_64
