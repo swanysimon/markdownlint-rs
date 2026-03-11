@@ -32,6 +32,45 @@ url = "https://github.com/rhysd/actionlint/releases/download/v1.7.11/actionlint_
 checksum = "sha256:5414b7124a91f4b5abee62e5c9d84802237734f8d15b9b7032732a32c3ebffa3"
 url = "https://github.com/rhysd/actionlint/releases/download/v1.7.11/actionlint_1.7.11_windows_amd64.zip"
 
+[[tools."github:crate-ci/cargo-release"]]
+version = "1.1.1"
+backend = "github:crate-ci/cargo-release"
+
+[tools."github:crate-ci/cargo-release"."platforms.linux-arm64"]
+checksum = "sha256:2b1a4a8d05afd0d958449d7a7b2cbc6dba19a2ed5c5a18055a8ef438a2667724"
+url = "https://github.com/crate-ci/cargo-release/releases/download/v1.1.1/cargo-release-v1.1.1-aarch64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/crate-ci/cargo-release/releases/assets/361507303"
+
+[tools."github:crate-ci/cargo-release"."platforms.linux-arm64-musl"]
+checksum = "sha256:2b1a4a8d05afd0d958449d7a7b2cbc6dba19a2ed5c5a18055a8ef438a2667724"
+url = "https://github.com/crate-ci/cargo-release/releases/download/v1.1.1/cargo-release-v1.1.1-aarch64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/crate-ci/cargo-release/releases/assets/361507303"
+
+[tools."github:crate-ci/cargo-release"."platforms.linux-x64"]
+checksum = "sha256:2868940ccbd1bc944074669b80b14bc9f6d418061efedc74a9203d800751e47a"
+url = "https://github.com/crate-ci/cargo-release/releases/download/v1.1.1/cargo-release-v1.1.1-x86_64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/crate-ci/cargo-release/releases/assets/361507374"
+
+[tools."github:crate-ci/cargo-release"."platforms.linux-x64-musl"]
+checksum = "sha256:2868940ccbd1bc944074669b80b14bc9f6d418061efedc74a9203d800751e47a"
+url = "https://github.com/crate-ci/cargo-release/releases/download/v1.1.1/cargo-release-v1.1.1-x86_64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/crate-ci/cargo-release/releases/assets/361507374"
+
+[tools."github:crate-ci/cargo-release"."platforms.macos-arm64"]
+checksum = "sha256:f67e5c570fb381ffc879983e34e25d33a006bf7c0d523fc14537c459e0975c44"
+url = "https://github.com/crate-ci/cargo-release/releases/download/v1.1.1/cargo-release-v1.1.1-aarch64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/crate-ci/cargo-release/releases/assets/361507668"
+
+[tools."github:crate-ci/cargo-release"."platforms.macos-x64"]
+checksum = "sha256:20d6c471b64944c47d3b718c37ce85bf6295aa9fadd4522004f0aa964c4725ef"
+url = "https://github.com/crate-ci/cargo-release/releases/download/v1.1.1/cargo-release-v1.1.1-x86_64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/crate-ci/cargo-release/releases/assets/361507706"
+
+[tools."github:crate-ci/cargo-release"."platforms.windows-x64"]
+checksum = "sha256:e25d4ea56b8ff75262ddcd51b63b740e33a2664620dc2640ea0777d95689687a"
+url = "https://github.com/crate-ci/cargo-release/releases/download/v1.1.1/cargo-release-v1.1.1-x86_64-pc-windows-msvc.zip"
+url_api = "https://api.github.com/repos/crate-ci/cargo-release/releases/assets/361507633"
+
 [[tools.hadolint]]
 version = "2.14.0"
 backend = "aqua:hadolint/hadolint"

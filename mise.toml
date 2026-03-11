@@ -1,5 +1,6 @@
 [tools]
 actionlint = "latest"
+"github:crate-ci/cargo-release" = "latest"
 hadolint = "latest"
 prek = "latest"
 shellcheck = "latest"

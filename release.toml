@@ -5,6 +5,8 @@
 # commands are needed in CI — by the time a tag is pushed, every manifest already
 # contains the correct version.
 
+publish = false
+
 # Main npm package version
 [[pre-release-replacements]]
 file = "npm/package.json"
