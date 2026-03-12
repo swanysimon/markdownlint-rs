@@ -10,52 +10,12 @@ on:
 
 jobs:
   publish:
-    name: Publish Python wheel (${{ matrix.platform_tag }})
+    name: Publish Python wheels
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
       contents: write
       id-token: write
-    strategy:
-      fail-fast: false
-      max-parallel: 1
-      matrix:
-        include:
-          # Linux x86_64
-          - asset: mdlint-linux-x86_64
-            binary: mdlint
-            platform_tag: manylinux_2_17_x86_64.manylinux2014_x86_64
-
-          # Linux x86_64 (musl - static binary)
-          - asset: mdlint-linux-x86_64-musl
-            binary: mdlint
-            platform_tag: musllinux_1_2_x86_64
-
-          # Linux aarch64
-          - asset: mdlint-linux-aarch64
-            binary: mdlint
-            platform_tag: manylinux_2_17_aarch64.manylinux2014_aarch64
-
-          # Linux aarch64 (musl - static binary)
-          - asset: mdlint-linux-aarch64-musl
-            binary: mdlint
-            platform_tag: musllinux_1_2_aarch64
-
-          # macOS x86_64
-          - asset: mdlint-macos-x86_64
-            binary: mdlint
-            platform_tag: macosx_10_12_x86_64
-
-          # macOS aarch64 (Apple Silicon)
-          - asset: mdlint-macos-aarch64
-            binary: mdlint
-            platform_tag: macosx_11_0_arm64
-
-          # Windows x86_64
-          - asset: mdlint-windows-x86_64.exe
-            binary: mdlint.exe
-            platform_tag: win_amd64
-
     defaults:
       run:
         working-directory: python
@@ -68,25 +28,44 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
 
-      - name: Download binary from release
+      - name: Download binaries from release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release download ${{ inputs.release }} \
-            --pattern '${{ matrix.asset }}' \
-            --output "mdlint/${{ matrix.binary }}" \
+            --pattern 'mdlint-linux-x86_64' \
+            --pattern 'mdlint-linux-x86_64-musl' \
+            --pattern 'mdlint-linux-aarch64' \
+            --pattern 'mdlint-linux-aarch64-musl' \
+            --pattern 'mdlint-macos-x86_64' \
+            --pattern 'mdlint-macos-aarch64' \
+            --pattern 'mdlint-windows-x86_64.exe' \
+            --dir /tmp/binaries \
             --repo "${{ github.repository }}"
-          chmod +x "mdlint/${{ matrix.binary }}"
 
-      - name: Build wheel
-        env:
-          MDLINT_PLATFORM_TAG: ${{ matrix.platform_tag }}
-        run: uv build --wheel
+      - name: Build wheels
+        run: |
+          declare -A platforms=(
+            [mdlint-linux-x86_64]="manylinux_2_17_x86_64.manylinux2014_x86_64"
+            [mdlint-linux-x86_64-musl]="musllinux_1_2_x86_64"
+            [mdlint-linux-aarch64]="manylinux_2_17_aarch64.manylinux2014_aarch64"
+            [mdlint-linux-aarch64-musl]="musllinux_1_2_aarch64"
+            [mdlint-macos-x86_64]="macosx_10_12_x86_64"
+            [mdlint-macos-aarch64]="macosx_11_0_arm64"
+            [mdlint-windows-x86_64.exe]="win_amd64"
+          )
+          for asset in "${!platforms[@]}"; do
+            binary="mdlint$([[ $asset == *.exe ]] && echo .exe || echo '')"
+            cp "/tmp/binaries/$asset" "mdlint/$binary"
+            chmod +x "mdlint/$binary"
+            MDLINT_PLATFORM_TAG="${platforms[$asset]}" uv build --wheel
+            rm "mdlint/$binary"
+          done
 
       - name: Publish to PyPI
         run: uv publish dist/*.whl
 
-      - name: Upload wheel to GitHub release
+      - name: Upload wheels to GitHub release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload "${{ inputs.release }}" dist/*.whl --repo "${{ github.repository }}"
