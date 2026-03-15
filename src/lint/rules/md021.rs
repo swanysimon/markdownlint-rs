@@ -85,6 +85,14 @@ impl Rule for MD021 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fix::Fixer;
+
+    fn apply_fixes(content: &str, violations: &[Violation]) -> String {
+        let fixes: Vec<_> = violations.iter().filter_map(|v| v.fix.clone()).collect();
+        Fixer::new()
+            .apply_fixes_to_content(content, &fixes)
+            .unwrap()
+    }
 
     #[test]
     fn test_single_space() {
@@ -124,5 +132,16 @@ mod tests {
         let violations = rule.check(&parser, None);
 
         assert_eq!(violations.len(), 0); // Not closed
+    }
+
+    #[test]
+    fn test_fix_collapses_spaces_before_closing_hashes() {
+        let content = "# Heading  ##\n";
+        let parser = MarkdownParser::new(content);
+        let rule = MD021;
+        let violations = rule.check(&parser, None);
+        assert_eq!(violations.len(), 1);
+        let fixed = apply_fixes(content, &violations);
+        assert_eq!(fixed, "# Heading ##\n");
     }
 }

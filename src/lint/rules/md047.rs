@@ -92,6 +92,14 @@ impl Rule for MD047 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fix::Fixer;
+
+    fn apply_fixes(content: &str, violations: &[Violation]) -> String {
+        let fixes: Vec<_> = violations.iter().filter_map(|v| v.fix.clone()).collect();
+        Fixer::new()
+            .apply_fixes_to_content(content, &fixes)
+            .unwrap()
+    }
 
     #[test]
     fn test_single_newline() {
@@ -131,5 +139,16 @@ mod tests {
         let violations = rule.check(&parser, None);
 
         assert_eq!(violations.len(), 0); // Empty file is OK
+    }
+
+    #[test]
+    fn test_fix_adds_trailing_newline() {
+        let content = "# Heading\n\nContent";
+        let parser = MarkdownParser::new(content);
+        let rule = MD047;
+        let violations = rule.check(&parser, None);
+        assert_eq!(violations.len(), 1);
+        let fixed = apply_fixes(content, &violations);
+        assert_eq!(fixed, "# Heading\n\nContent\n");
     }
 }

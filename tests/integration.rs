@@ -1,4 +1,5 @@
 use mdlint::config::Config;
+use mdlint::fix::Fixer;
 use mdlint::formatter;
 use mdlint::lint::LintEngine;
 use std::fs;
@@ -73,6 +74,19 @@ fn check_detects_trailing_spaces() {
 }
 
 #[test]
+fn check_fix_removes_trailing_spaces() {
+    let content = "# Heading\n\nSome text   \nMore text\n";
+    let engine = all_rules_engine();
+    let violations = engine.lint_content(content).unwrap();
+    let fixes: Vec<_> = violations.iter().filter_map(|v| v.fix.clone()).collect();
+    assert!(!fixes.is_empty(), "MD009 should produce an inline fix");
+    let fixed = Fixer::new()
+        .apply_fixes_to_content(content, &fixes)
+        .unwrap();
+    assert_eq!(fixed, "# Heading\n\nSome text\nMore text\n");
+}
+
+#[test]
 fn check_detects_hard_tabs() {
     let content = fixture("check/violations.md");
     let engine = all_rules_engine();
@@ -81,6 +95,19 @@ fn check_detects_hard_tabs() {
         violations.iter().any(|v| v.rule == "MD010"),
         "MD010 (hard tabs) should fire; got: {violations:?}"
     );
+}
+
+#[test]
+fn check_fix_replaces_hard_tabs() {
+    let content = "# Heading\n\n\tTabbed line\n";
+    let engine = all_rules_engine();
+    let violations = engine.lint_content(content).unwrap();
+    let fixes: Vec<_> = violations.iter().filter_map(|v| v.fix.clone()).collect();
+    assert!(!fixes.is_empty(), "MD010 should produce an inline fix");
+    let fixed = Fixer::new()
+        .apply_fixes_to_content(content, &fixes)
+        .unwrap();
+    assert!(!fixed.contains('\t'), "tabs should be replaced after fix");
 }
 
 #[test]

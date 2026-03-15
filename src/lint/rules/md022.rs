@@ -39,7 +39,8 @@ impl Rule for MD022 {
             if line_idx > 0 {
                 let prev_line = lines[line_idx - 1].trim();
                 if !prev_line.is_empty() {
-                    // Insert blank line before heading
+                    // Replace the heading line with "\n<heading>" — the embedded newline
+                    // causes the Fixer to produce a blank line before the heading.
                     violations.push(Violation {
                         line: heading_line,
                         column: Some(1),
@@ -47,8 +48,8 @@ impl Rule for MD022 {
                         message: "Heading should be surrounded by blank lines (missing before)"
                             .to_string(),
                         fix: Some(Fix {
-                            line_start: line_idx,
-                            line_end: line_idx,
+                            line_start: heading_line,
+                            line_end: heading_line,
                             column_start: None,
                             column_end: None,
                             replacement: format!("\n{}", lines[line_idx]),
@@ -68,7 +69,8 @@ impl Rule for MD022 {
                         .chars()
                         .all(|c| c == '=' || c == '-' || c.is_whitespace())
                 {
-                    // Insert blank line after heading
+                    // Replace the heading line with "<heading>\n" — the embedded newline
+                    // causes the Fixer to produce a blank line after the heading.
                     violations.push(Violation {
                         line: heading_line,
                         column: Some(1),
@@ -76,8 +78,8 @@ impl Rule for MD022 {
                         message: "Heading should be surrounded by blank lines (missing after)"
                             .to_string(),
                         fix: Some(Fix {
-                            line_start: line_idx + 1,
-                            line_end: line_idx + 1,
+                            line_start: heading_line,
+                            line_end: heading_line,
                             column_start: None,
                             column_end: None,
                             replacement: format!("{}\n", lines[line_idx]),
@@ -99,6 +101,14 @@ impl Rule for MD022 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fix::Fixer;
+
+    fn apply_fixes(content: &str, violations: &[Violation]) -> String {
+        let fixes: Vec<_> = violations.iter().filter_map(|v| v.fix.clone()).collect();
+        Fixer::new()
+            .apply_fixes_to_content(content, &fixes)
+            .unwrap()
+    }
 
     #[test]
     fn test_properly_surrounded() {
@@ -140,5 +150,29 @@ mod tests {
         let violations = rule.check(&parser, None);
 
         assert_eq!(violations.len(), 0); // First line is exempt from "before" check
+    }
+
+    #[test]
+    fn test_fix_inserts_blank_before_heading() {
+        let content = "Paragraph\n# Heading\n\nContent\n";
+        let parser = MarkdownParser::new(content);
+        let rule = MD022;
+        let violations = rule.check(&parser, None);
+        assert_eq!(violations.len(), 1);
+        assert!(violations[0].message.contains("before"));
+        let fixed = apply_fixes(content, &violations);
+        assert_eq!(fixed, "Paragraph\n\n# Heading\n\nContent\n");
+    }
+
+    #[test]
+    fn test_fix_inserts_blank_after_heading() {
+        let content = "# Heading\nContent\n";
+        let parser = MarkdownParser::new(content);
+        let rule = MD022;
+        let violations = rule.check(&parser, None);
+        assert_eq!(violations.len(), 1);
+        assert!(violations[0].message.contains("after"));
+        let fixed = apply_fixes(content, &violations);
+        assert_eq!(fixed, "# Heading\n\nContent\n");
     }
 }

@@ -50,7 +50,7 @@ impl Rule for MD009 {
                         line_start: line_num + 1,
                         line_end: line_num + 1,
                         column_start: Some(trimmed.len() + 1),
-                        column_end: Some(line.len() + 1),
+                        column_end: Some(line.len()),
                         replacement: String::new(),
                         description: "Remove trailing spaces".to_string(),
                     }),
@@ -69,6 +69,14 @@ impl Rule for MD009 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fix::Fixer;
+
+    fn apply_fixes(content: &str, violations: &[Violation]) -> String {
+        let fixes: Vec<_> = violations.iter().filter_map(|v| v.fix.clone()).collect();
+        Fixer::new()
+            .apply_fixes_to_content(content, &fixes)
+            .unwrap()
+    }
 
     #[test]
     fn test_no_trailing_spaces() {
@@ -113,5 +121,15 @@ mod tests {
         let violations = rule.check(&parser, Some(&config));
 
         assert_eq!(violations.len(), 0); // 3 spaces allowed for br
+    }
+
+    #[test]
+    fn test_fix_removes_trailing_spaces() {
+        let content = "Line 1   \nLine 2\n";
+        let parser = MarkdownParser::new(content);
+        let rule = MD009;
+        let violations = rule.check(&parser, None);
+        let fixed = apply_fixes(content, &violations);
+        assert_eq!(fixed, "Line 1\nLine 2\n");
     }
 }

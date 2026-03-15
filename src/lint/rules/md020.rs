@@ -76,6 +76,14 @@ impl Rule for MD020 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fix::Fixer;
+
+    fn apply_fixes(content: &str, violations: &[Violation]) -> String {
+        let fixes: Vec<_> = violations.iter().filter_map(|v| v.fix.clone()).collect();
+        Fixer::new()
+            .apply_fixes_to_content(content, &fixes)
+            .unwrap()
+    }
 
     #[test]
     fn test_correct_closed_heading() {
@@ -115,5 +123,16 @@ mod tests {
         let violations = rule.check(&parser, None);
 
         assert_eq!(violations.len(), 2); // Both missing spaces
+    }
+
+    #[test]
+    fn test_fix_inserts_space_before_closing_hashes() {
+        let content = "# Heading#\n";
+        let parser = MarkdownParser::new(content);
+        let rule = MD020;
+        let violations = rule.check(&parser, None);
+        assert_eq!(violations.len(), 1);
+        let fixed = apply_fixes(content, &violations);
+        assert_eq!(fixed, "# Heading #\n");
     }
 }

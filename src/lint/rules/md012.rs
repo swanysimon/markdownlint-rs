@@ -92,6 +92,14 @@ impl Rule for MD012 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fix::Fixer;
+
+    fn apply_fixes(content: &str, violations: &[Violation]) -> String {
+        let fixes: Vec<_> = violations.iter().filter_map(|v| v.fix.clone()).collect();
+        Fixer::new()
+            .apply_fixes_to_content(content, &fixes)
+            .unwrap()
+    }
 
     #[test]
     fn test_no_consecutive_blanks() {
@@ -133,5 +141,16 @@ mod tests {
         let violations = rule.check(&parser, None);
 
         assert_eq!(violations.len(), 1);
+    }
+
+    #[test]
+    fn test_fix_removes_excess_blank_line() {
+        let content = "Line 1\n\n\nLine 2\n";
+        let parser = MarkdownParser::new(content);
+        let rule = MD012;
+        let violations = rule.check(&parser, None);
+        assert_eq!(violations.len(), 1);
+        let fixed = apply_fixes(content, &violations);
+        assert_eq!(fixed, "Line 1\n\nLine 2\n");
     }
 }

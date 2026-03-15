@@ -133,6 +133,14 @@ fn parse_item_number(trimmed: &str) -> Option<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fix::Fixer;
+
+    fn apply_fixes(content: &str, violations: &[Violation]) -> String {
+        let fixes: Vec<_> = violations.iter().filter_map(|v| v.fix.clone()).collect();
+        Fixer::new()
+            .apply_fixes_to_content(content, &fixes)
+            .unwrap()
+    }
 
     #[test]
     fn test_ordered_sequence() {
@@ -236,6 +244,16 @@ mod tests {
         let fix = violations[0].fix.as_ref().expect("fix should be Some");
         assert_eq!(fix.replacement, "2");
         assert_eq!(fix.column_start, Some(1));
+    }
+
+    #[test]
+    fn test_fix_renumbers_list() {
+        let content = "1. First\n1. Second\n1. Third\n";
+        let parser = MarkdownParser::new(content);
+        let rule = MD029;
+        let violations = rule.check(&parser, None);
+        let fixed = apply_fixes(content, &violations);
+        assert_eq!(fixed, "1. First\n2. Second\n3. Third\n");
     }
 
     #[test]

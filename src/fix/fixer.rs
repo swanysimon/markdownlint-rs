@@ -31,6 +31,7 @@ impl Fixer {
 
         // Detect line ending style
         let line_ending = detect_line_ending(content);
+        let had_trailing_newline = content.ends_with('\n');
 
         // Split into lines
         let mut lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
@@ -62,8 +63,13 @@ impl Fixer {
             apply_single_fix(&mut lines, &fix)?;
         }
 
-        // Rejoin with original line ending
-        Ok(lines.join(line_ending))
+        // Rejoin with original line ending, preserving a trailing newline if
+        // the input had one (str::lines() silently drops it).
+        let mut result = lines.join(line_ending);
+        if had_trailing_newline {
+            result.push_str(line_ending);
+        }
+        Ok(result)
     }
 
     /// Apply fixes from a FileResult and write to disk
@@ -186,8 +192,12 @@ fn apply_single_fix(lines: &mut Vec<String>, fix: &Fix) -> Result<()> {
 
     // Handle line-based fixes (replace entire lines)
     if start_line == end_line {
-        // Single line replacement
-        lines[start_line] = fix.replacement.clone();
+        if fix.replacement.is_empty() && fix.column_start.is_none() {
+            // Empty replacement with no column range = "delete this line".
+            lines.remove(start_line);
+        } else {
+            lines[start_line] = fix.replacement.clone();
+        }
     } else {
         // Multi-line replacement
         let replacement_lines: Vec<String> =

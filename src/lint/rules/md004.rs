@@ -133,6 +133,14 @@ impl Rule for MD004 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fix::Fixer;
+
+    fn apply_fixes(content: &str, violations: &[Violation]) -> String {
+        let fixes: Vec<_> = violations.iter().filter_map(|v| v.fix.clone()).collect();
+        Fixer::new()
+            .apply_fixes_to_content(content, &fixes)
+            .unwrap()
+    }
 
     #[test]
     fn test_consistent_asterisk() {
@@ -228,6 +236,18 @@ Here's a code block with markdown syntax:
 
         // Should not flag list markers in indented code blocks
         assert_eq!(violations.len(), 0);
+    }
+
+    #[test]
+    fn test_fix_normalises_marker_to_dash() {
+        let content = "* Item 1\n* Item 2\n";
+        let parser = MarkdownParser::new(content);
+        let rule = MD004;
+        let config = serde_json::json!({ "style": "dash" });
+        let violations = rule.check(&parser, Some(&config));
+        assert_eq!(violations.len(), 2);
+        let fixed = apply_fixes(content, &violations);
+        assert_eq!(fixed, "- Item 1\n- Item 2\n");
     }
 
     #[test]

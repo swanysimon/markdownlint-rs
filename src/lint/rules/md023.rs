@@ -72,6 +72,14 @@ impl Rule for MD023 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fix::Fixer;
+
+    fn apply_fixes(content: &str, violations: &[Violation]) -> String {
+        let fixes: Vec<_> = violations.iter().filter_map(|v| v.fix.clone()).collect();
+        Fixer::new()
+            .apply_fixes_to_content(content, &fixes)
+            .unwrap()
+    }
 
     #[test]
     fn test_correct_headings() {
@@ -127,5 +135,16 @@ mod tests {
 
         assert_eq!(violations.len(), 1);
         assert!(violations[0].message.contains("2 space"));
+    }
+
+    #[test]
+    fn test_fix_removes_leading_whitespace() {
+        let content = " # Indented heading\n\nParagraph.\n";
+        let parser = MarkdownParser::new(content);
+        let rule = MD023;
+        let violations = rule.check(&parser, None);
+        assert_eq!(violations.len(), 1);
+        let fixed = apply_fixes(content, &violations);
+        assert_eq!(fixed, "# Indented heading\n\nParagraph.\n");
     }
 }

@@ -672,6 +672,21 @@ fn heading_to_u8(level: HeadingLevel) -> u8 {
 mod tests {
     use super::*;
 
+    /// Assert that `input` formats to `expected` AND that `expected` is already
+    /// canonical (formatting it again produces no change — the "not-fix" side).
+    fn assert_formats_to(input: &str, expected: &str) {
+        let got = format(input);
+        assert_eq!(
+            got, expected,
+            "format(input) did not match expected.\nInput:\n{input}\nExpected:\n{expected}\nGot:\n{got}"
+        );
+        assert_eq!(
+            format(expected),
+            expected,
+            "format(expected) != expected — already-canonical content must be unchanged.\nExpected:\n{expected}"
+        );
+    }
+
     #[test]
     fn test_empty_input() {
         assert_eq!(format(""), "");
@@ -736,17 +751,19 @@ mod tests {
     #[test]
     fn test_ordered_list_all_ones_renumbered() {
         // "one" style (1. / 1. / 1.) is canonicalized to sequential.
-        let input = "1. First\n1. Second\n1. Third";
-        let output = format(input);
-        assert_eq!(output, "1. First\n2. Second\n3. Third\n");
+        assert_formats_to(
+            "1. First\n1. Second\n1. Third",
+            "1. First\n2. Second\n3. Third\n",
+        );
     }
 
     #[test]
     fn test_ordered_list_non_one_start_renumbered() {
         // Lists starting at a number other than 1 are renumbered from 1.
-        let input = "3. First\n5. Second\n9. Third";
-        let output = format(input);
-        assert_eq!(output, "1. First\n2. Second\n3. Third\n");
+        assert_formats_to(
+            "3. First\n5. Second\n9. Third",
+            "1. First\n2. Second\n3. Third\n",
+        );
     }
 
     #[test]
@@ -804,59 +821,59 @@ mod tests {
     // Headings: setext → ATX (both levels)
     #[test]
     fn test_setext_headings_to_atx() {
-        assert_eq!(format("Heading 1\n========="), "# Heading 1\n");
-        assert_eq!(format("Heading 2\n---------"), "## Heading 2\n");
+        assert_formats_to("Heading 1\n=========", "# Heading 1\n");
+        assert_formats_to("Heading 2\n---------", "## Heading 2\n");
     }
 
     // Headings: closed ATX → open ATX
     #[test]
     fn test_closed_atx_stripped() {
-        assert_eq!(format("## Heading ##"), "## Heading\n");
-        assert_eq!(format("# Title #"), "# Title\n");
+        assert_formats_to("## Heading ##", "## Heading\n");
+        assert_formats_to("# Title #", "# Title\n");
     }
 
     // Headings: multiple spaces after `#` collapsed to one
     #[test]
     fn test_multiple_spaces_after_hash_collapsed() {
-        assert_eq!(format("#  Heading"), "# Heading\n");
-        assert_eq!(format("##   Wide"), "## Wide\n");
+        assert_formats_to("#  Heading", "# Heading\n");
+        assert_formats_to("##   Wide", "## Wide\n");
     }
 
     // Blank lines: multiple consecutive blank lines collapsed to one
     #[test]
     fn test_multiple_blank_lines_collapsed() {
-        assert_eq!(format("First.\n\n\n\nSecond."), "First.\n\nSecond.\n");
+        assert_formats_to("First.\n\n\n\nSecond.", "First.\n\nSecond.\n");
     }
 
     // List markers: * and + → -
     #[test]
     fn test_list_markers_to_dash() {
-        assert_eq!(format("* Item 1\n* Item 2"), "- Item 1\n- Item 2\n");
-        assert_eq!(format("+ Item 1\n+ Item 2"), "- Item 1\n- Item 2\n");
+        assert_formats_to("* Item 1\n* Item 2", "- Item 1\n- Item 2\n");
+        assert_formats_to("+ Item 1\n+ Item 2", "- Item 1\n- Item 2\n");
     }
 
     // Emphasis: _ / __ → * / **
     #[test]
     fn test_emphasis_to_asterisk() {
-        assert_eq!(format("_italic_"), "*italic*\n");
-        assert_eq!(format("__bold__"), "**bold**\n");
+        assert_formats_to("_italic_", "*italic*\n");
+        assert_formats_to("__bold__", "**bold**\n");
     }
 
     // Code fences: ~~~ → ``` (with and without lang tag)
     #[test]
     fn test_tilde_fence_to_backtick() {
-        assert_eq!(format("~~~rust\ncode\n~~~"), "```rust\ncode\n```\n");
-        assert_eq!(format("~~~\ncode\n~~~"), "```\ncode\n```\n");
+        assert_formats_to("~~~rust\ncode\n~~~", "```rust\ncode\n```\n");
+        assert_formats_to("~~~\ncode\n~~~", "```\ncode\n```\n");
     }
 
     // Horizontal rules: all styles → ---
     #[test]
     fn test_all_hr_styles_to_dashes() {
-        assert_eq!(format("***"), "---\n");
-        assert_eq!(format("___"), "---\n");
-        assert_eq!(format("* * *"), "---\n");
-        assert_eq!(format("- - -"), "---\n");
-        assert_eq!(format("_ _ _"), "---\n");
+        assert_formats_to("***", "---\n");
+        assert_formats_to("___", "---\n");
+        assert_formats_to("* * *", "---\n");
+        assert_formats_to("- - -", "---\n");
+        assert_formats_to("_ _ _", "---\n");
     }
 
     // Hard line breaks: trailing-space syntax → backslash continuation.
@@ -864,11 +881,7 @@ mod tests {
     // doesn't silently drop the line break (CLAUDE.md lessons learned).
     #[test]
     fn test_hard_line_break_becomes_backslash() {
-        let input = "foo  \nbar";
-        let output = format(input);
-        assert_eq!(output, "foo\\\nbar\n");
-        // Must be idempotent: re-parsing \\\n also yields a HardBreak event.
-        assert_eq!(format(&output), output);
+        assert_formats_to("foo  \nbar", "foo\\\nbar\n");
     }
 
     // Tables
@@ -882,9 +895,10 @@ mod tests {
     #[test]
     fn test_table_no_leading_pipes() {
         // GFM allows tables without leading/trailing pipes
-        let input = "A | B\n--- | ---\n1 | 2\n";
-        let output = format(input);
-        assert_eq!(output, "| A | B |\n| --- | --- |\n| 1 | 2 |\n");
+        assert_formats_to(
+            "A | B\n--- | ---\n1 | 2\n",
+            "| A | B |\n| --- | --- |\n| 1 | 2 |\n",
+        );
     }
 
     #[test]
@@ -952,38 +966,17 @@ mod tests {
     // keep the block inside the list item (3 spaces for `1. `, 2 for `- `).
     #[test]
     fn test_ordered_list_with_code_block() {
-        let input = "1. **Enable rule:**\n\n   ```toml\n   enabled = false\n   ```\n\n1. **Another item:**\n\n   ```toml\n   line_length = 100\n   ```\n";
-        let output = format(input);
-        assert!(
-            output.contains("   ```toml\n"),
-            "code fence should be indented 3 spaces inside ordered list item"
-        );
-        assert!(
-            output.contains("   enabled = false\n"),
-            "code content should be indented 3 spaces"
+        let canonical = "1. **Enable rule:**\n\n   ```toml\n   enabled = false\n   ```\n\n2. **Another item:**\n\n   ```toml\n   line_length = 100\n   ```\n";
+        // Starting with `1. / 1.` triggers MD029 renumbering in the formatter.
+        assert_formats_to(
+            "1. **Enable rule:**\n\n   ```toml\n   enabled = false\n   ```\n\n1. **Another item:**\n\n   ```toml\n   line_length = 100\n   ```\n",
+            canonical,
         );
     }
 
     #[test]
-    fn test_ordered_list_with_code_block_idempotent() {
-        // Proptest is unlikely to generate this specific structure; keep explicit.
-        let input = "1. **Enable rule:**\n\n   ```toml\n   enabled = false\n   ```\n\n1. **Another item:**\n\n   ```toml\n   line_length = 100\n   ```\n";
-        let once = format(input);
-        let twice = format(&once);
-        assert_eq!(
-            once, twice,
-            "ordered list with code block must be idempotent"
-        );
-    }
-
-    #[test]
-    fn test_unordered_list_with_code_block_idempotent() {
-        let input = "- **Item:**\n\n  ```toml\n  enabled = false\n  ```\n";
-        let once = format(input);
-        let twice = format(&once);
-        assert_eq!(
-            once, twice,
-            "unordered list with code block must be idempotent"
-        );
+    fn test_unordered_list_with_code_block() {
+        let canonical = "- **Item:**\n\n  ```toml\n  enabled = false\n  ```\n";
+        assert_formats_to(canonical, canonical);
     }
 }

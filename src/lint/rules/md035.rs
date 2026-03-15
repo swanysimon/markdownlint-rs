@@ -122,6 +122,14 @@ fn get_hr_style(line: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fix::Fixer;
+
+    fn apply_fixes(content: &str, violations: &[Violation]) -> String {
+        let fixes: Vec<_> = violations.iter().filter_map(|v| v.fix.clone()).collect();
+        Fixer::new()
+            .apply_fixes_to_content(content, &fixes)
+            .unwrap()
+    }
 
     #[test]
     fn test_consistent_style() {
@@ -173,5 +181,17 @@ mod tests {
         let violations = rule.check(&parser, Some(&config));
 
         assert_eq!(violations.len(), 0); // Consistent
+    }
+
+    #[test]
+    fn test_fix_normalises_hr_to_dashes() {
+        let content = "***\n\nContent\n";
+        let parser = MarkdownParser::new(content);
+        let rule = MD035;
+        let config = serde_json::json!({ "style": "---" });
+        let violations = rule.check(&parser, Some(&config));
+        assert_eq!(violations.len(), 1);
+        let fixed = apply_fixes(content, &violations);
+        assert_eq!(fixed, "---\n\nContent\n");
     }
 }

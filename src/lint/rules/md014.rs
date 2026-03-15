@@ -113,6 +113,14 @@ impl Rule for MD014 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fix::Fixer;
+
+    fn apply_fixes(content: &str, violations: &[Violation]) -> String {
+        let fixes: Vec<_> = violations.iter().filter_map(|v| v.fix.clone()).collect();
+        Fixer::new()
+            .apply_fixes_to_content(content, &fixes)
+            .unwrap()
+    }
 
     #[test]
     fn test_no_dollar_signs() {
@@ -154,5 +162,16 @@ mod tests {
         let violations = rule.check(&parser, None);
 
         assert_eq!(violations.len(), 0); // Not a shell language
+    }
+
+    #[test]
+    fn test_fix_removes_dollar_signs() {
+        let content = "```bash\n$ ls -la\n$ echo hello\n```\n";
+        let parser = MarkdownParser::new(content);
+        let rule = MD014;
+        let violations = rule.check(&parser, None);
+        assert_eq!(violations.len(), 2);
+        let fixed = apply_fixes(content, &violations);
+        assert_eq!(fixed, "```bash\nls -la\necho hello\n```\n");
     }
 }

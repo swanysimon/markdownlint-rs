@@ -72,6 +72,14 @@ impl Rule for MD027 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fix::Fixer;
+
+    fn apply_fixes(content: &str, violations: &[Violation]) -> String {
+        let fixes: Vec<_> = violations.iter().filter_map(|v| v.fix.clone()).collect();
+        Fixer::new()
+            .apply_fixes_to_content(content, &fixes)
+            .unwrap()
+    }
 
     #[test]
     fn test_correct_blockquote() {
@@ -113,5 +121,16 @@ mod tests {
         let violations = rule.check(&parser, None);
 
         assert_eq!(violations.len(), 0); // No space is allowed
+    }
+
+    #[test]
+    fn test_fix_collapses_blockquote_spaces() {
+        let content = ">  Too many spaces\n> Correct line\n";
+        let parser = MarkdownParser::new(content);
+        let rule = MD027;
+        let violations = rule.check(&parser, None);
+        assert_eq!(violations.len(), 1);
+        let fixed = apply_fixes(content, &violations);
+        assert_eq!(fixed, "> Too many spaces\n> Correct line\n");
     }
 }

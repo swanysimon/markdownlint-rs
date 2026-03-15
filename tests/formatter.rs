@@ -1,6 +1,6 @@
 use mdlint::formatter;
 use std::fs;
-use std::process::Command;
+use std::process::{Command, Stdio};
 use tempfile::TempDir;
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -205,7 +205,26 @@ fn idempotent_on_mixed_document() {
     assert_eq!(once, twice, "formatter is not idempotent on mixed document");
 }
 
-// ── `mdlint format --check` CLI ──────────────────────────────────────────────
+// ── `mdlint format` CLI ──────────────────────────────────────────────────────
+
+#[test]
+fn format_check_does_not_modify_file() {
+    // `format --check` must never write to disk even when changes are needed.
+    let dir = TempDir::new().unwrap();
+    let file = dir.path().join("doc.md");
+    let original = "Heading\n=======\n\n* item\n";
+    fs::write(&file, original).unwrap();
+
+    Command::new(mdlint_bin())
+        .args(["format", "--check", file.to_str().unwrap()])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .unwrap();
+
+    let after = fs::read_to_string(&file).unwrap();
+    assert_eq!(after, original, "format --check must not modify the file");
+}
 
 #[test]
 fn format_check_exits_0_when_already_formatted() {
@@ -215,6 +234,8 @@ fn format_check_exits_0_when_already_formatted() {
 
     let status = Command::new(mdlint_bin())
         .args(["format", "--check", file.to_str().unwrap()])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .status()
         .unwrap();
 
@@ -232,6 +253,8 @@ fn format_check_exits_1_when_file_needs_formatting() {
 
     let status = Command::new(mdlint_bin())
         .args(["format", "--check", file.to_str().unwrap()])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .status()
         .unwrap();
 
@@ -250,10 +273,71 @@ fn format_rewrites_file_in_place() {
 
     let status = Command::new(mdlint_bin())
         .args(["format", file.to_str().unwrap()])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .status()
         .unwrap();
 
     assert!(status.success());
     let result = fs::read_to_string(&file).unwrap();
     assert_eq!(result, "# Heading\n\n- item\n");
+}
+
+// ── `mdlint check` CLI ───────────────────────────────────────────────────────
+
+#[test]
+fn check_without_fix_does_not_modify_file() {
+    // `check` with `fix = false` must never write to disk.
+    // We supply an explicit config because the default has `fix = true`.
+    let dir = TempDir::new().unwrap();
+    let config = dir.path().join("mdlint.toml");
+    fs::write(&config, "default_enabled = true\nfix = false\n").unwrap();
+    let file = dir.path().join("doc.md");
+    let content = "# Heading\n\nTrailing spaces.   \n";
+    fs::write(&file, content).unwrap();
+
+    Command::new(mdlint_bin())
+        .args([
+            "check",
+            "--config",
+            config.to_str().unwrap(),
+            file.to_str().unwrap(),
+        ])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .unwrap();
+
+    let after = fs::read_to_string(&file).unwrap();
+    assert_eq!(
+        after, content,
+        "check with fix=false must not modify the file"
+    );
+}
+
+#[test]
+fn check_with_fix_corrects_violations_and_exits_1() {
+    // `check --fix` applies inline fixes but still exits 1 because violations
+    // were present (exit code reflects the pre-fix lint result).
+    let dir = TempDir::new().unwrap();
+    let file = dir.path().join("doc.md");
+    fs::write(&file, "# Heading\n\nTrailing spaces.   \n").unwrap();
+
+    let status = Command::new(mdlint_bin())
+        .args(["check", "--fix", file.to_str().unwrap()])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .unwrap();
+
+    assert_eq!(
+        status.code(),
+        Some(1),
+        "check --fix should exit 1 when violations were found"
+    );
+    let after = fs::read_to_string(&file).unwrap();
+    assert_eq!(
+        after, "# Heading\n\nTrailing spaces.\n",
+        "trailing spaces should be removed by --fix"
+    );
 }
