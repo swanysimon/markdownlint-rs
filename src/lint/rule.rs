@@ -19,7 +19,7 @@ pub trait Rule: Send + Sync {
 
 #[derive(Default)]
 pub struct RuleRegistry {
-    rules: HashMap<String, Box<dyn Rule>>,
+    rules: HashMap<String, Box<dyn Rule + Send + Sync>>,
 }
 
 impl RuleRegistry {
@@ -27,15 +27,15 @@ impl RuleRegistry {
         Self::default()
     }
 
-    pub fn register(&mut self, rule: Box<dyn Rule>) {
+    pub fn register(&mut self, rule: Box<dyn Rule + Send + Sync>) {
         self.rules.insert(rule.name().to_string(), rule);
     }
 
     pub fn get(&self, name: &str) -> Option<&dyn Rule> {
-        self.rules.get(name).map(|r| r.as_ref())
+        self.rules.get(name).map(|r| r.as_ref() as &dyn Rule)
     }
 
     pub fn all_rules(&self) -> impl Iterator<Item = &dyn Rule> {
-        self.rules.values().map(|r| r.as_ref())
+        self.rules.values().map(|r| r.as_ref() as &dyn Rule)
     }
 }

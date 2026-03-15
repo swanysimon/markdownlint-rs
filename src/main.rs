@@ -8,6 +8,7 @@ use mdlint::format::{DefaultFormatter, Formatter, JsonFormatter};
 use mdlint::formatter;
 use mdlint::glob::FileWalker;
 use mdlint::lint::{LintEngine, LintResult};
+use mdlint::types::Violation;
 use std::env;
 use std::fs;
 use std::io::{self, IsTerminal};
@@ -43,7 +44,11 @@ fn run_check(args: &CheckArgs, config: Config, use_color: bool, verbose: bool) -
         return Ok(false);
     }
 
-    let lint_result = lint_files(config, &files, verbose)?;
+    let lint_result = if args.parallel && !args.no_parallel {
+        lint_files_parallel(config, &files, verbose)?
+    } else {
+        lint_files(config, &files, verbose)?
+    };
 
     if should_fix && lint_result.has_errors() {
         apply_fixes(&lint_result)?;
@@ -149,6 +154,35 @@ fn is_excluded(path: &PathBuf, excludes: &[PathBuf]) -> bool {
             path == exclude || path.starts_with(exclude)
         }
     })
+}
+
+fn lint_files_parallel(config: Config, files: &[PathBuf], verbose: bool) -> Result<LintResult> {
+    use rayon::prelude::*;
+
+    let engine = LintEngine::new(config);
+    let outcomes: Vec<Result<(PathBuf, Vec<Violation>, Vec<String>)>> = files
+        .par_iter()
+        .map(|file_path| {
+            if verbose {
+                eprintln!("Checking: {}", file_path.display());
+            }
+            let content = fs::read_to_string(file_path)?;
+            let violations = engine.lint_content(&content)?;
+            let source_lines = content.lines().map(str::to_string).collect();
+            Ok((file_path.clone(), violations, source_lines))
+        })
+        .collect();
+
+    let mut lint_result = LintResult::new();
+    for outcome in outcomes {
+        let (path, violations, source_lines) = outcome?;
+        if violations.is_empty() {
+            lint_result.record_clean_file();
+        } else {
+            lint_result.add_file_result(path, violations, source_lines);
+        }
+    }
+    Ok(lint_result)
 }
 
 fn lint_files(config: Config, files: &[PathBuf], verbose: bool) -> Result<LintResult> {

@@ -131,6 +131,17 @@ pub struct CheckArgs {
 
     #[arg(
         long,
+        help = "Lint files in parallel (experimental)",
+        help_heading = "Experimental",
+        overrides_with = "no_parallel"
+    )]
+    pub parallel: bool,
+
+    #[arg(long, hide = true, overrides_with = "parallel")]
+    pub no_parallel: bool,
+
+    #[arg(
+        long,
         value_delimiter = ',',
         value_name = "RULE_CODE",
         help = "Comma-separated list of rules to enable (or `ALL`)",
