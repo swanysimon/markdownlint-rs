@@ -22,10 +22,10 @@ Run `mdlint format` and stop thinking about it.
 
 ## Installation
 
-Efforts to make mdlint available via [Homebrew](https://brew.sh) and other package managers is planned. For
-now, pick between downloading binaries from GitHub releases, pulling from
+Pick between downloading binaries from GitHub releases, pulling from
 [crates.io](https://crates.io/crates/markdownlint-rs), or using a
 [Docker container](https://github.com/swanysimon/mdlint/pkgs/container/mdlint).
+A [Homebrew](https://brew.sh) formula is planned.
 
 ### From GitHub Releases (Recommended)
 
@@ -436,10 +436,45 @@ Or use `mdlint check --fix` to auto-fix and stage the result:
 
 ## Contributing
 
-Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code quality
-standards, how to add new rules and formatting behaviors, and the release process.
+Contributions are welcome!
 
-The full development task list is in [AIDEV.md](AIDEV.md).
+### Development setup
+
+Prerequisites: [mise](https://mise.jdx.dev/) and [Rust](https://rustup.rs/).
+Optionally, Docker is needed for Dockerfile linting.
+[uv](https://docs.astral.sh/uv/) is required only if working on the Python package.
+
+```bash
+git clone https://github.com/swanysimon/mdlint.git
+cd mdlint
+mise install   # installs prek, tombi, hadolint
+cargo build
+```
+
+### Code quality
+
+All quality checks run via `prek run -a`. This must pass before submitting a pull request.
+
+### Pull request process
+
+1. Create a feature branch from `main`
+2. Make focused commits with clear messages
+3. Add tests for new functionality
+4. Run `prek run -a` and fix any failures
+5. Submit a PR with a description of what changed and why
+
+### Release process
+
+Releases use [`cargo-release`](https://github.com/crate-ci/cargo-release), which bumps all
+package manifests in sync and pushes the tag that triggers CI to build, package, and publish
+everything automatically:
+
+```bash
+cargo release patch --execute   # or minor / major
+```
+
+Once the tag is pushed, CI verifies manifest versions, builds binaries for all 7 platforms,
+and publishes to crates.io, PyPI, and npm via trusted publishing (no tokens required).
 
 ## License
 

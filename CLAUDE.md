@@ -11,10 +11,6 @@ The formatter (`mdlint format`) enforces a canonical style by rewriting files. T
 Core principles: correctness over performance, type safety, minimal code, no duplication,
 comprehensive testing.
 
-## Task Tracking
-
-All development tasks are tracked in [AIDEV.md](AIDEV.md) as AI-addressable prompts.
-
 ## Architecture
 
 ```text
@@ -153,6 +149,31 @@ src/
 - PyPI trusted publishing: use a single job with a bash loop over all 7 platforms rather than a
   matrix job — avoids concurrent upload errors (HTTP 500) and reduces environment approval prompts
   to one per release instead of one per matrix element
+
+## Developer Guide
+
+### Adding a linting rule
+
+1. Create `src/lint/rules/mdXXX.rs` and implement the `Rule` trait
+  (`name`, `description`, `tags`, `check`). Return `true` from `fixable()`
+  if `mdlint format` enforces this rule.
+2. Register it in `create_default_registry()` in `src/lint/rules/mod.rs`
+3. Write tests in the same file — both a violation-detection test and a fix-application test
+  (see Testing Strategy: every transformation test must cover both modes)
+
+### Adding a formatting behavior
+
+1. Document the style decision in `FORMAT_SPEC.md` first — it is the source of truth
+2. Implement in `src/formatter/mod.rs` by handling the relevant pulldown-cmark events
+3. Constraint: `format(format(x)) == format(x)` — idempotency is non-negotiable
+4. If the behavior maps to a lint rule, set `fixable() = true` and ensure `mdlint format`
+  and `mdlint check --fix` produce identical output for that rule
+
+### Adding a new platform
+
+Update all three in sync: `build-binaries.yml` (build the binary), `publish-npm.yml`
+(download + rename step), and `publish-python.yml` (platform loop). Also update the
+supported platforms tables in `npm/README.md` and `python/README.md`.
 
 ## References
 

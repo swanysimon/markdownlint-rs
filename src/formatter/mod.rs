@@ -168,10 +168,20 @@ impl FormatterState {
                     CodeBlockKind::Fenced(lang) => lang.into_string(),
                     CodeBlockKind::Indented => String::new(),
                 };
-                let indent = self.list_continuation_prefix();
-                self.code_block_indent = indent.clone();
+                let fence_indent = self.list_continuation_prefix();
+                // When the fence lands on the same line as the list marker (tight item),
+                // the effective list margin becomes marker_width + fence_indent_width.
+                // Content and closing fence must use this combined width to stay inside the item.
+                let content_indent = if self.in_tight_item {
+                    let marker_width = self.list_item_widths.last().copied().unwrap_or(0);
+                    " ".repeat(marker_width + fence_indent.len())
+                } else {
+                    fence_indent.clone()
+                };
+                self.in_tight_item = false;
+                self.code_block_indent = content_indent;
                 self.write_bq_prefix();
-                self.out.push_str(&indent);
+                self.out.push_str(&fence_indent);
                 self.out.push_str("```");
                 self.out.push_str(&lang);
                 self.out.push('\n');
@@ -434,8 +444,10 @@ impl FormatterState {
                 }
             }
         } else {
-            // pulldown-cmark resolves `\\` → `\`; re-double to survive the next parse.
-            self.inline.push_str(&text.replace('\\', "\\\\"));
+            // pulldown-cmark resolves `\\` → `\` and `\`` → `` ` ``; re-escape both
+            // so the characters survive the next parse without changing meaning.
+            self.inline
+                .push_str(&text.replace('\\', "\\\\").replace('`', "\\`"));
         }
     }
 
@@ -941,5 +953,24 @@ mod tests {
     fn test_unordered_list_with_code_block() {
         let canonical = "- **Item:**\n\n  ```toml\n  enabled = false\n  ```\n";
         assert_formats_to(canonical, canonical);
+    }
+
+    #[test]
+    fn test_tight_list_item_code_block_only() {
+        // A list item whose sole content is a code block (no text paragraph).
+        // The opening fence lands on the same line as the marker ("-   ```"),
+        // making the effective list margin 4. Content and closing fence must
+        // both use 4-space indent so the closing fence stays inside the item.
+        let canonical = "-   ```\n    ¡\n    ```\n";
+        assert_formats_to(canonical, canonical);
+    }
+
+    #[test]
+    fn test_backtick_in_text_escaped() {
+        // A lone backtick in paragraph text must be escaped so it cannot pair
+        // with another backtick on re-parse and form an unintended code span.
+        let once = format("\\`\r`");
+        let twice = format(&once);
+        assert_eq!(once, twice, "idempotency: lone backticks in text");
     }
 }
