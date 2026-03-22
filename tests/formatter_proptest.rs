@@ -2,6 +2,8 @@ use mdlint::formatter;
 use proptest::prelude::*;
 
 proptest! {
+    #![proptest_config(ProptestConfig::with_cases(10_000))]
+
     /// The formatter must never panic on any input string.
     #[test]
     fn formatter_never_panics(s in ".*") {

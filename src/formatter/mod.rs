@@ -594,7 +594,8 @@ fn needs_line_escape(line: &str, is_continuation: bool) -> bool {
     }
 
     let after_hashes = line.trim_start_matches('#');
-    if after_hashes.len() < line.len() && (after_hashes.is_empty() || after_hashes.starts_with(' '))
+    if after_hashes.len() < line.len()
+        && (after_hashes.is_empty() || after_hashes.starts_with([' ', '\t']))
     {
         return true;
     }
@@ -608,6 +609,20 @@ fn needs_line_escape(line: &str, is_continuation: bool) -> bool {
         if let Some(after_marker) = rest.strip_prefix(['.', ')'])
             && (after_marker.is_empty() || after_marker.starts_with([' ', '\t']))
             && (!is_continuation || digits == "1")
+        {
+            return true;
+        }
+    }
+
+    // Setext heading underlines: a continuation line consisting entirely of
+    // `=` (h1) or `-` (h2) characters would turn the preceding text line
+    // into a heading on re-parse, breaking idempotency.  Single `-` is
+    // already caught above (list marker); `---`+ is caught (thematic break).
+    // All-`=` lines and `--` are not covered by those rules.
+    if is_continuation {
+        let trimmed = line.trim_end_matches([' ', '\t']);
+        if !trimmed.is_empty()
+            && (trimmed.chars().all(|c| c == '=') || trimmed.chars().all(|c| c == '-'))
         {
             return true;
         }
@@ -963,6 +978,23 @@ mod tests {
         // both use 4-space indent so the closing fence stays inside the item.
         let canonical = "-   ```\n    ¡\n    ```\n";
         assert_formats_to(canonical, canonical);
+    }
+
+    #[test]
+    fn test_setext_underline_in_paragraph_continuation() {
+        // "\t=" is stripped to "=" by pulldown-cmark; the bare "=" on a
+        // continuation line must be escaped so "a\n=\n" is not re-parsed
+        // as a setext h1 heading on the next format pass.
+        let once = format("a\r\t=");
+        let twice = format(&once);
+        assert_eq!(
+            once, twice,
+            "idempotency: setext-underline-like continuation"
+        );
+        // Same for "--" which is a valid setext h2 underline.
+        let once = format("a\r\t--");
+        let twice = format(&once);
+        assert_eq!(once, twice, "idempotency: setext h2 continuation");
     }
 
     #[test]

@@ -16,3 +16,4 @@ cc c1ba9399a58e096b803246d1816adf0a2be0fba7e92caf9cbdfd177f139306eb # shrinks to
 cc fa0cad7454fa78e45ac27fd7f54833cc99a33ed7b43855b165cf81188c0bafbd # shrinks to s = "¡\r>\r¡"
 cc 6c8a6382ffb3b0235ed2d5253bc9391424daea457e4d86eb202b5b3695093f0d # shrinks to s = "*\t\t¡"
 cc 89df1c3066f94e5a064b54290b44309f6d4fc2a7ae9cc08a4f143b0fc14d4c64 # shrinks to s = "\\`\r`"
+cc c359903a5be4cf4f16203380045e4d23f93333ee7a5141c4f0a8f35ff54eaef8 # shrinks to s = "\\#\t¡"
