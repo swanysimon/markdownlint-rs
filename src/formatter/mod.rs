@@ -178,9 +178,16 @@ impl FormatterState {
                 } else {
                     fence_indent.clone()
                 };
+                let was_tight = self.in_tight_item;
                 self.in_tight_item = false;
                 self.code_block_indent = content_indent;
-                self.write_bq_prefix();
+                // When the fence is on the same line as the list marker (tight
+                // item), the blockquote prefix was already written by Tag::Item.
+                // Writing it again would insert an extra `>` that the re-parser
+                // interprets as a nested blockquote, breaking idempotency.
+                if !was_tight {
+                    self.write_bq_prefix();
+                }
                 self.out.push_str(&fence_indent);
                 self.out.push_str("```");
                 self.out.push_str(&lang);
@@ -435,19 +442,68 @@ impl FormatterState {
         if self.in_code_block {
             // Code block content goes directly to output, with list
             // continuation indent re-added (pulldown-cmark strips it).
-            if self.code_block_indent.is_empty() {
+            // When inside a blockquote, each content line also needs the
+            // `> ` prefix so that the re-parser keeps the content inside
+            // the blockquote (fence lines already get the prefix via
+            // write_bq_prefix, but content lines arrive here as Text events).
+            let bq = "> ".repeat(self.bq_depth);
+            if bq.is_empty() && self.code_block_indent.is_empty() {
                 self.out.push_str(text);
             } else {
                 for line in text.split_inclusive('\n') {
+                    self.out.push_str(&bq);
                     self.out.push_str(&self.code_block_indent);
                     self.out.push_str(line);
                 }
             }
         } else {
-            // pulldown-cmark resolves `\\` → `\` and `\`` → `` ` ``; re-escape both
-            // so the characters survive the next parse without changing meaning.
-            self.inline
-                .push_str(&text.replace('\\', "\\\\").replace('`', "\\`"));
+            // `\\` and `` ` `` are resolved unconditionally by pulldown-cmark regardless
+            // of context, so always re-escape them.
+            //
+            // For `_` and `~`, escape only at positions where the character is NOT between
+            // two Unicode alphanumeric characters.  Intra-word delimiters (e.g. `x86_64`)
+            // can never open or close emphasis per CommonMark Rule 10/17; everything else
+            // must be escaped or it may form emphasis/strikethrough on the next parse.
+            //
+            // pulldown-cmark may split a single logical run into multiple Text events (e.g.
+            // `\_0_` → `Text("_0")` + `Text("_")`).  The combined output `_0_` would form
+            // emphasis on re-parse.  To catch this, we use the last char already written to
+            // `self.inline` as the "preceding character" for the first char of the event.
+            //
+            // pulldown-cmark occasionally emits bare `\r` characters inside text events
+            // (e.g. from heading content that contains `\r` without a following `\n`).
+            // Emitting a raw `\r` into output causes it to be treated as a line ending on
+            // re-parse (CommonMark spec §2.3), breaking the heading/paragraph structure and
+            // therefore idempotency.  Normalise before processing.
+            let text = &*text.replace("\r\n", "\n").replace('\r', "\n");
+            let prev_inline_char = self.inline.chars().next_back();
+            let chars: Vec<char> = text.chars().collect();
+            let mut s = String::with_capacity(text.len() + 4);
+            for (i, &ch) in chars.iter().enumerate() {
+                match ch {
+                    '\\' => s.push_str("\\\\"),
+                    '`' => s.push_str("\\`"),
+                    '_' | '~' => {
+                        let prev = if i > 0 {
+                            Some(chars[i - 1])
+                        } else {
+                            prev_inline_char
+                        };
+                        let next = chars.get(i + 1).copied();
+                        // Only leave bare when flanked by alphanumeric on BOTH sides.
+                        if prev.is_some_and(char::is_alphanumeric)
+                            && next.is_some_and(char::is_alphanumeric)
+                        {
+                            s.push(ch);
+                        } else {
+                            s.push('\\');
+                            s.push(ch);
+                        }
+                    }
+                    _ => s.push(ch),
+                }
+            }
+            self.inline.push_str(&s);
         }
     }
 
@@ -500,6 +556,16 @@ impl FormatterState {
     /// Each line in `text` gets the blockquote prefix prepended (except the first,
     /// which follows whatever was already written on the current output line).
     fn flush_inline_text(&mut self, text: &str, continuation_prefix: &str) {
+        // Strip trailing hard-break markers (`\\\n`) preceded by only whitespace.
+        // A `\` before a line ending that is at the end of a block is re-parsed by
+        // pulldown-cmark as a literal `\`, not a hard break — so emitting `\\\n` at
+        // the end of a paragraph breaks idempotency (the formatter doubles the `\`
+        // on the second pass).  A trailing hard break is always a no-op: there is
+        // nothing on the "next line" for the break to separate.
+        let text = {
+            let s = text.trim_end_matches(|c: char| c != '\n' && c.is_whitespace());
+            s.strip_suffix("\\\n").unwrap_or(text)
+        };
         let bq = "> ".repeat(self.bq_depth);
         let mut lines = text.split('\n').peekable();
 
@@ -508,9 +574,10 @@ impl FormatterState {
                 self.out.push_str(&bq);
             }
             if needs_line_escape(first, false) {
-                self.out.push('\\');
+                self.out.push_str(&escape_line(first));
+            } else {
+                self.out.push_str(first);
             }
-            self.out.push_str(first);
             self.out.push('\n');
         }
 
@@ -522,9 +589,10 @@ impl FormatterState {
             self.out.push_str(continuation_prefix);
             self.out.push_str(&bq);
             if needs_line_escape(line, true) {
-                self.out.push('\\');
+                self.out.push_str(&escape_line(line));
+            } else {
+                self.out.push_str(line);
             }
-            self.out.push_str(line);
             self.out.push('\n');
         }
     }
@@ -545,12 +613,41 @@ impl FormatterState {
                 prev_blank = false;
             }
         }
-        let joined = result.join("\n");
+        // Strip leading blank lines (e.g. from Unicode-whitespace-only lines such
+        // as NBSP that trim_end() reduces to empty but aren't caught by the
+        // initial input.trim().is_empty() guard).
+        let start = result
+            .iter()
+            .position(|l| !l.is_empty())
+            .unwrap_or(result.len());
+        let joined = result[start..].join("\n");
         let trimmed = joined.trim_end_matches('\n');
         if trimmed.is_empty() {
             return String::new();
         }
         format!("{}\n", trimmed)
+    }
+}
+
+/// Produce the escaped form of `line` when `needs_line_escape` returns true.
+///
+/// All block-trigger patterns whose first character is ASCII punctuation (`>`, `*`,
+/// `-`, `+`, `_`, `#`, `=`, `<`) are correctly escaped by prepending `\` — that
+/// gives a valid backslash escape that round-trips through pulldown-cmark.
+///
+/// The exception is ordered-list markers: `0.` or `12.` start with a digit, and
+/// `\0` is NOT a valid CommonMark escape sequence (digits are not ASCII punctuation).
+/// A literal `\` before a digit is emitted as-is by pulldown-cmark, then the
+/// formatter doubles it on the second pass, breaking idempotency.  The fix: place
+/// the backslash before the `.` or `)` that follows the digits instead — `0\.` —
+/// which IS a valid escape and renders identically.
+fn escape_line(line: &str) -> String {
+    let digits_len = line.chars().take_while(|c| c.is_ascii_digit()).count();
+    if digits_len > 0 {
+        // Ordered-list marker: `0.` → `0\.`, `12)` → `12\)`, etc.
+        format!("{}\\{}", &line[..digits_len], &line[digits_len..])
+    } else {
+        format!("\\{line}")
     }
 }
 
