@@ -27,6 +27,17 @@ impl Rule for MD050 {
         let mut violations = Vec::new();
         let mut first_style: Option<&str> = None;
 
+        // Get byte ranges that are in code (more precise than line numbers)
+        let code_ranges = parser.get_code_ranges();
+
+        // Helper function to check if a position is within code
+        let is_in_code = |line_num: usize, byte_offset: usize| -> bool {
+            let absolute_offset = parser.line_offset_to_absolute(line_num, byte_offset);
+            code_ranges
+                .iter()
+                .any(|range| range.contains(&absolute_offset))
+        };
+
         for (line_num, line) in parser.lines().iter().enumerate() {
             let line_number = line_num + 1;
 
@@ -46,6 +57,12 @@ impl Rule for MD050 {
                             if j + 1 < chars.len() {
                                 let close_two = format!("{}{}", chars[j], chars[j + 1]);
                                 if close_two == two_char {
+                                    // Skip if this emphasis is inside code
+                                    if is_in_code(line_number, i) {
+                                        i = j; // Skip to after closing
+                                        break;
+                                    }
+
                                     found_close = true;
 
                                     // Track style
@@ -193,5 +210,29 @@ mod tests {
 
         // Reports violation for both opening and closing markers
         assert_eq!(violations.len(), 2);
+    }
+
+    #[test]
+    fn test_code_block_with_underscores() {
+        let content = "Some **bold** text.\n\n\
+            ```txt\n__tests__\n```\n\n\
+            More **bold** text.";
+        let parser = MarkdownParser::new(content);
+        let rule = MD050;
+        let violations = rule.check(&parser, None);
+
+        // Should not flag underscores in code as strong markers
+        assert_eq!(violations.len(), 0);
+    }
+
+    #[test]
+    fn test_inline_code_with_underscores() {
+        let content = "Some `__code__`, **bold** text and `__code__`.";
+        let parser = MarkdownParser::new(content);
+        let rule = MD050;
+        let violations = rule.check(&parser, None);
+
+        // Should not flag underscores inside inline code as strong markers
+        assert_eq!(violations.len(), 0);
     }
 }
