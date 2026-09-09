@@ -77,6 +77,10 @@ src/
 ### Code Quality
 
 - All checks run via `prek run -a` (defined in `prek.toml`), managed by `mise` (`mise.toml`)
+- `mise run bench` (`scripts/bench.sh`) times `check`/`format` with hyperfine over a pinned copy of the
+  Rust book cached in `target/bench/`; `check` exits 1 there, so hyperfine needs `--ignore-failure` and
+  the script asserts the expected exit codes itself. Per-rule costs are *not* measured — the 40 ms
+  process floor swamps them; that would need an in-process criterion bench
 - `prek run -a` runs hooks sequentially with `fail_fast = true`:
   trailing-whitespace → end-of-file-fixer → actionlint → hadolint → tombi check → tombi format →
   clippy (with `--fix`) → rustfmt → cargo test → mdlint check (dogfood) → mdlint format (dogfood)
