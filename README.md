@@ -381,6 +381,13 @@ cargo build
 
 All quality checks run via `prek run -a`. This must pass before submitting a pull request.
 
+### Benchmarking
+
+`mise run bench` times `check` and `format` end to end against a pinned copy of the
+[Rust book](https://github.com/rust-lang/book) (112 Markdown files), downloading the corpus into `target/bench/` on
+first run. The numbers cover process startup, file discovery, I/O and diagnostic rendering, so they reflect the tool
+as a user experiences it rather than the cost of any single rule.
+
 ### Pull request process
 
 1. Create a feature branch from `main`
